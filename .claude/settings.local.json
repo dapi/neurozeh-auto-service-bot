@@ -8,7 +8,12 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "WebFetch(domain:github.com)",
-      "Bash(ruby -c:*)"
+      "Bash(ruby -c:*)",
+      "Bash(make test:*)",
+      "WebSearch",
+      "WebFetch(domain:www.rubydoc.info)",
+      "WebFetch(domain:rubygems.org)",
+      "Bash(ruby:*)"
     ],
     "deny": [],
     "ask": []

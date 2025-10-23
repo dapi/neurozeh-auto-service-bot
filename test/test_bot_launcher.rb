@@ -12,6 +12,7 @@ class TestBotLauncher < Minitest::Test
 
   def test_polling_mode_creates_polling_starter
     @config.expect(:bot_mode, 'polling')
+    @config.expect(:bot_mode, 'polling')
 
     launcher = BotLauncher.new(@config, @logger, @telegram_bot_handler)
 
@@ -28,6 +29,7 @@ class TestBotLauncher < Minitest::Test
 
   def test_webhook_mode_creates_webhook_starter
     @config.expect(:bot_mode, 'webhook')
+    @config.expect(:bot_mode, 'webhook')
 
     launcher = BotLauncher.new(@config, @logger, @telegram_bot_handler)
 
@@ -43,11 +45,12 @@ class TestBotLauncher < Minitest::Test
   end
 
   def test_unknown_mode_raises_error
-    @config.expect(:bot_mode, 'invalid')
-
     launcher = BotLauncher.new(@config, @logger, @telegram_bot_handler)
 
-    assert_raises(RuntimeError) do
+    # Set up expectations for multiple calls to bot_mode
+    3.times { @config.expect(:bot_mode, 'invalid') }
+
+    assert_raises(RuntimeError, "Unknown bot mode: invalid") do
       launcher.start
     end
   end

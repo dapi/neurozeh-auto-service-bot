@@ -56,13 +56,9 @@ class TestClaudeClient < Minitest::Test
     def mock_response.body; '{"content":[{"text":"Hello from Claude"}]}'; end
 
     # Test through public method using stub
-    original_post = ClaudeClient.method(:post)
-    ClaudeClient.define_singleton_method(:post) { |*args| mock_response }
-
-    response = client.send_message([{ role: 'user', content: 'Hi' }])
-    assert_equal 'Hello from Claude', response
-
-    # Restore original method
-    ClaudeClient.define_singleton_method(:post, original_post)
+    ClaudeClient.stub(:post, mock_response) do
+      response = client.send_message([{ role: 'user', content: 'Hi' }])
+      assert_equal 'Hello from Claude', response
+    end
   end
 end
