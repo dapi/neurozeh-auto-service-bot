@@ -1,0 +1,202 @@
+require:
+  - rubocop-minitest
+  - rubocop-performance
+  - rubocop-rake
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  Exclude:
+    - 'bin/**/*'
+    - 'tmp/**/*'
+    - 'vendor/**/*'
+    - '.git/**/*'
+    - '.env*'
+
+Layout/LineLength:
+  Max: 120
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 15
+
+Metrics/ClassLength:
+  Max: 150
+
+Metrics/BlockLength:
+  ExcludedMethods:
+    - describe
+    - context
+    - it
+    - let
+
+Naming/FileName:
+  Exclude:
+    - 'Gemfile'
+
+Minitest/AssertEmpty:
+  Enabled: true
+
+Minitest/AssertEqual:
+  Enabled: true
+
+Minitest/AssertFalse:
+  Enabled: true
+
+Minitest/AssertInDelta:
+  Enabled: true
+
+Minitest/AssertIncludes:
+  Enabled: true
+
+Minitest/AssertInstanceOf:
+  Enabled: true
+
+Minitest/AssertMatch:
+  Enabled: true
+
+Minitest/AssertNil:
+  Enabled: true
+
+Minitest/AssertNotEqual:
+  Enabled: true
+
+Minitest/AssertNotIncludes:
+  Enabled: true
+
+Minitest/AssertNotNil:
+  Enabled: true
+
+Minitest/AssertOperator:
+  Enabled: true
+
+Minitest/AssertOutput:
+  Enabled: true
+
+Minitest/AssertPathExists:
+  Enabled: true
+
+Minitest/AssertPredicate:
+  Enabled: true
+
+Minitest/AssertRaises:
+  Enabled: true
+
+Minitest/AssertRespondTo:
+  Enabled: true
+
+Minitest/AssertRescue:
+  Enabled: true
+
+Minitest/AssertSame:
+  Enabled: true
+
+Minitest/AssertSilence:
+  Enabled: true
+
+Minitest/AssertThrows:
+  Enabled: true
+
+Minitest/AssertTrue:
+  Enabled: true
+
+Performance/AncestorsInclude:
+  Enabled: true
+
+Performance/ArraySemiInfiniteRange:
+  Enabled: true
+
+Performance/BigDecimalWithNumericArgument:
+  Enabled: true
+
+Performance/BlockGivenWithExplicitBlock:
+  Enabled: true
+
+Performance/CaseWhenSplat:
+  Enabled: true
+
+Performance/CollectionLiteralInLoop:
+  Enabled: true
+
+Performance/CompareWithBlock:
+  Enabled: true
+
+Performance/Count:
+  Enabled: true
+
+Performance/ConstantRegexp:
+  Enabled: true
+
+Performance/Detect:
+  Enabled: true
+
+Performance/DoubleStartEnd:
+  Enabled: true
+
+Performance/EndWith:
+  Enabled: true
+
+Performance/FixedSize:
+  Enabled: true
+
+Performance/FlatMap:
+  Enabled: true
+
+Performance/InefficientHashSearch:
+  Enabled: true
+
+Performance/MapCompact:
+  Enabled: true
+
+Performance/MapMethodChain:
+  Enabled: true
+
+Performance/RedundantSortBlock:
+  Enabled: true
+
+Performance/RedundantStringChars:
+  Enabled: true
+
+Performance/RegexpMatch:
+  Enabled: true
+
+Performance/ReverseEach:
+  Enabled: true
+
+Performance/SelectMap:
+  Enabled: true
+
+Performance/Size:
+  Enabled: true
+
+Performance/SortFirst:
+  Enabled: true
+
+Performance/SortReverse:
+  Enabled: true
+
+Performance/Squeeze:
+  Enabled: true
+
+Performance/StringInclude:
+  Enabled: true
+
+Performance/Sum:
+  Enabled: true
+
+Performance/TimesMap:
+  Enabled: true
+
+Performance/UnfreezeString:
+  Enabled: true
+
+Performance/UriDefaultParser:
+  Enabled: true
+
+Performance/MethodObjectAsBlock:
+  Enabled: true
