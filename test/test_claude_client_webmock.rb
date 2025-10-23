@@ -10,12 +10,19 @@ class TestClaudeClientWebmock < Minitest::Test
 
     # Create a test config using fixture files
     @config = Minitest::Mock.new
-    @config.expect(:anthropic_model, 'glm-4.5-air')
+    # Set up all expected calls for initialization
+    @config.expect(:anthropic_model, 'glm-4.6')
     @config.expect(:anthropic_auth_token, 'test_token')
+    @config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    @config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    @config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
     @config.expect(:anthropic_base_url, 'https://api.anthropic.com')
+    @config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in configure_ssl_for_connection
+    @config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in Anthropic::Client.new
     @config.expect(:system_prompt_path, @system_prompt_path)
     @config.expect(:price_list_path, @price_list_path)
     @config.expect(:debug_api_requests, false)
+    @config.expect(:debug_api_requests, false) # Called in test_connectivity check
 
     @logger = NullLogger.new
   end
@@ -55,7 +62,7 @@ class TestClaudeClientWebmock < Minitest::Test
     create_params = nil
     mock_messages.expect(:create, mock_response) do |params|
       create_params = params
-      params[:model] == 'glm-4.5-air' &&
+      params[:model] == 'glm-4.6' &&
       params[:max_tokens] == 1500 &&
       params[:messages] == [{ role: 'user', content: 'Hello' }] &&
       params[:system].is_a?(String)
@@ -63,7 +70,26 @@ class TestClaudeClientWebmock < Minitest::Test
 
     mock_anthropic_client.expect(:messages, mock_messages)
 
-    client = ClaudeClient.new(@config, @logger)
+    # Create a new client with fresh config for this test
+    config = Minitest::Mock.new
+    config.expect(:anthropic_model, 'glm-4.6')
+    config.expect(:anthropic_auth_token, 'test_token')
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com')
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in configure_ssl_for_connection
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in Anthropic::Client.new
+    config.expect(:system_prompt_path, @system_prompt_path)
+    config.expect(:price_list_path, @price_list_path)
+    config.expect(:debug_api_requests, false)
+    config.expect(:debug_api_requests, false) # Called in test_connectivity check
+    config.expect(:anthropic_model, 'glm-4.6') # Called in send_message
+    config.expect(:anthropic_auth_token, 'test_token') # Called in send_message
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in send_message
+    config.expect(:debug_api_requests, false) # Called in send_message
+
+    client = ClaudeClient.new(config, @logger)
 
     # Replace the internal client with our mock
     client.instance_variable_set(:@client, mock_anthropic_client)
@@ -90,12 +116,23 @@ class TestClaudeClientWebmock < Minitest::Test
   end
 
   def test_debug_logging_enabled
-    # Test with debug enabled
-    @config.expect(:debug_api_requests, true)
-    @config.expect(:anthropic_auth_token, 'test_token')
-    @config.expect(:anthropic_base_url, 'https://api.anthropic.com')
+    # Test with debug enabled - create a fresh config
+    config = Minitest::Mock.new
+    config.expect(:anthropic_model, 'glm-4.6')
+    config.expect(:anthropic_auth_token, 'test_token')
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_auth_token, 'test_token') # Called again in setup_anthropic_client
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com')
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in configure_ssl_for_connection
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in test_connectivity
+    config.expect(:anthropic_base_url, 'https://api.anthropic.com') # Called in Anthropic::Client.new
+    config.expect(:system_prompt_path, @system_prompt_path)
+    config.expect(:price_list_path, @price_list_path)
+    config.expect(:debug_api_requests, true)
+    config.expect(:debug_api_requests, true) # Called in test_connectivity check
 
-    client = ClaudeClient.new(@config, @logger)
+    client = ClaudeClient.new(config, @logger)
     anthropic_client = client.instance_variable_get(:@client)
 
     # Anthropic client should be created successfully

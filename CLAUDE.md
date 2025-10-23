@@ -73,3 +73,50 @@ Tests are located in `test/` directory and use Minitest framework. Run with `rak
 - The bot supports Russian language interface (car service context)
 - НЕ используются File.write и File.delete и прочие Не безопасные методы в тестах
 - НЕ изменеются ENV-ы в тестах
+
+## SSL Certificate Issues
+
+### Problem
+When using custom API endpoints (like `api.z.ai`), you may encounter SSL certificate verification errors:
+```
+OpenSSL::SSL::SSLError - SSL_connect returned=1 errno=0 peeraddr=... state=error: certificate verify failed (unable to get certificate CRL)
+```
+
+### Solutions
+
+#### 1. Automatic SSL Patch (Recommended)
+The application includes automatic SSL handling for problematic hosts:
+- SSL verification is automatically disabled for `api.z.ai`
+- You can enable strict SSL verification with `ALLOW_SSL_VERIFY=true`
+- You can manually disable SSL verification with `DISABLE_SSL_VERIFY=true`
+
+#### 2. Manual SSL Patch
+If automatic handling doesn't work, load the SSL patch before the bot:
+```bash
+ruby -r ./patch_ssl.rb bot.rb
+```
+
+#### 3. Environment Variables
+Use these environment variables to control SSL behavior:
+- `ALLOW_SSL_VERIFY=true` - Force strict SSL verification
+- `DISABLE_SSL_VERIFY=true` - Force disable SSL verification
+- `SSL_CERT_FILE=/dev/null` - Disable certificate verification
+- `CURL_CA_BUNDLE=/dev/null` - Disable CA bundle verification
+
+#### 4. Debug Mode
+Enable debug mode for detailed SSL logging:
+```bash
+DEBUG_API_REQUESTS=true ruby bot.rb
+```
+
+### Common API Endpoint Issues
+
+If you see 410 Gone errors, the API endpoint may have changed. Current known issues:
+- `https://api.z.ai/api/anthropic/v1/messages` returns 410 Gone
+- Try contacting your API provider for the correct endpoint URL
+
+### Testing SSL Connection
+Use the provided test script to diagnose SSL issues:
+```bash
+ruby test_claude_connection.rb
+```

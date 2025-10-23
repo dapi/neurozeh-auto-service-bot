@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.envrc
 .env.local
 .env*.local
 
@@ -17,7 +18,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -40,5 +40,4 @@ tmp/
 .DS_Store
 
 # Bundle
-Gemfile.lock
 vendor/bundle

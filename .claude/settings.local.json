@@ -19,7 +19,19 @@
       "Bash(gem server:*)",
       "Bash(gem install:*)",
       "Bash(gem environment:*)",
-      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/anthropic-1.12.0/**)"
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/anthropic-1.12.0/**)",
+      "Bash(env:*)",
+      "Bash(curl:*)",
+      "Bash(openssl:*)",
+      "Bash(OPENSSL_CONF=/dev/null ruby:*)",
+      "Bash(DISABLE_SSL_VERIFY=true ruby:*)",
+      "Bash(CURL_CA_BUNDLE=/etc/ssl/cert.pem SSL_CERT_FILE=/etc/ssl/cert.pem ruby:*)",
+      "Bash(gem update:*)",
+      "Bash(cert-update:*)",
+      "Bash(timeout:*)",
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/lib/telegram/bot/**)",
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/lib/telegram/**)",
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/**)"
     ],
     "deny": [],
     "ask": []

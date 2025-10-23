@@ -4,31 +4,33 @@ require 'test_helper'
 
 class TestClaudeClientPriceList < Minitest::Test
   def setup
-    # Создаем тестовую конфигурацию и файлы
-    File.write('./test/fixtures/test_system_prompt.md', 'test prompt')
-    File.write('./test/fixtures/test_price_list.csv', "Прайс лист\nКАТЕГОРИЯ УСЛУГ\nКапот,1000,2000,3000")
+    # Use existing fixture files instead of creating temporary ones
+    @system_prompt_path = File.expand_path('fixtures/system-prompt.md', __dir__)
+    @price_list_path = File.expand_path('fixtures/кузник.csv', __dir__)
 
     @config = AppConfig.new(
       anthropic_auth_token: 'test_token',
       anthropic_base_url: 'https://api.anthropic.com',
       telegram_bot_token: 'test_token',
-      system_prompt_path: './test/fixtures/test_system_prompt.md',
-      price_list_path: './test/fixtures/test_price_list.csv',
+      system_prompt_path: @system_prompt_path,
+      price_list_path: @price_list_path,
       debug_api_requests: false
     )
 
-    # Создаем mock logger для тестов
+    # Создаем mock logger для тестов - ожидаем все сообщения, которые логируются при инициализации
     @mock_logger = Minitest::Mock.new
+    @mock_logger.expect(:info, nil, ['Anthropic client configuration:'])
+    @mock_logger.expect(:info, nil, ['  Base URL: https://api.anthropic.com'])
+    @mock_logger.expect(:info, nil, ['  Model: glm-4.6'])
+    @mock_logger.expect(:info, nil, ['  API Token present: YES'])
+    @mock_logger.expect(:info, nil, ['  API Token length: 10'])
     @mock_logger.expect(:info, nil, ['ClaudeClient initialized with anthropic gem, system prompt and price list'])
 
     @client = ClaudeClient.new(@config, @mock_logger)
   end
 
   def teardown
-    # Удаляем тестовые файлы
-    File.delete('./test/fixtures/test_system_prompt.md') if File.exist?('./test/fixtures/test_system_prompt.md')
-    File.delete('./test/fixtures/test_price_list.csv') if File.exist?('./test/fixtures/test_price_list.csv')
-
+    # No need to delete files since we use existing fixtures
     # Verify mock expectations
     @mock_logger&.verify
   end
@@ -36,7 +38,7 @@ class TestClaudeClientPriceList < Minitest::Test
   def test_load_price_list_success
     price_list = @client.instance_variable_get(:@price_list)
     refute_nil price_list
-    assert_includes price_list, 'КАТЕГОРИЯ УСЛУГ'
+    assert_includes price_list, 'Услуга,Цена'
     assert_includes price_list, '📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'
     assert_includes price_list, '📋'
   end
@@ -48,28 +50,41 @@ class TestClaudeClientPriceList < Minitest::Test
   end
 
   def test_empty_price_list_handling
-    File.write('./test/fixtures/empty_price_list.csv', '')
+    # Test with actual empty file using Tempfile
+    require 'tempfile'
 
-    config = AppConfig.new(
-      anthropic_auth_token: 'test_token',
-      anthropic_base_url: 'https://api.anthropic.com',
-      telegram_bot_token: 'test_token',
-      system_prompt_path: './test/fixtures/test_system_prompt.md',
-      price_list_path: './test/fixtures/empty_price_list.csv',
-      debug_api_requests: false
-    )
+    empty_file = Tempfile.new(['empty_price_list', '.csv'])
+    empty_file.write('')
+    empty_file.close
 
-    mock_logger = Minitest::Mock.new
-    mock_logger.expect(:info, nil, ['ClaudeClient initialized with anthropic gem, system prompt and price list'])
-    mock_logger.expect(:error, nil, ['Price list file is empty: ./test/fixtures/empty_price_list.csv'])
+    begin
+      config = AppConfig.new(
+        anthropic_auth_token: 'test_token',
+        anthropic_base_url: 'https://api.anthropic.com',
+        telegram_bot_token: 'test_token',
+        system_prompt_path: @system_prompt_path,
+        price_list_path: empty_file.path,
+        debug_api_requests: false
+      )
 
-    client = ClaudeClient.new(config, mock_logger)
+      mock_logger = Minitest::Mock.new
+      mock_logger.expect(:info, nil, ['Anthropic client configuration:'])
+      mock_logger.expect(:info, nil, ['  Base URL: https://api.anthropic.com'])
+      mock_logger.expect(:info, nil, ['  Model: glm-4.6'])
+      mock_logger.expect(:info, nil, ['  API Token present: YES'])
+      mock_logger.expect(:info, nil, ['  API Token length: 10'])
+      mock_logger.expect(:error, nil, ["Price list file is empty: #{empty_file.path}"])
+      mock_logger.expect(:info, nil, ['ClaudeClient initialized with anthropic gem, system prompt and price list'])
 
-    price_list = client.instance_variable_get(:@price_list)
-    assert_includes price_list, 'Прайс-лист пуст'
+      client = ClaudeClient.new(config, mock_logger)
 
-    mock_logger.verify
-    File.delete('./test/fixtures/empty_price_list.csv')
+      price_list = client.instance_variable_get(:@price_list)
+      assert_includes price_list, 'Прайс-лист пуст'
+
+      mock_logger.verify
+    ensure
+      empty_file.unlink
+    end
   end
 
   def test_combined_system_prompt_generation
@@ -84,6 +99,6 @@ class TestClaudeClientPriceList < Minitest::Test
 
     # Проверяем наличие важных компонентов в прайс-листе
     assert_includes price_list, '📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'
-    assert_includes price_list, 'КАТЕГОРИЯ УСЛУГ'
+    assert_includes price_list, 'Услуга,Цена'
   end
 end
