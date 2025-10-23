@@ -12,6 +12,9 @@ require_relative 'lib/rate_limiter'
 require_relative 'lib/conversation_manager'
 require_relative 'lib/claude_client'
 require_relative 'lib/telegram_bot_handler'
+require_relative 'lib/bot_launcher'
+require_relative 'lib/polling_starter'
+require_relative 'lib/webhook_starter'
 
 # Initialize logger
 log_level = ENV['LOG_LEVEL']&.upcase || 'INFO'
@@ -20,7 +23,6 @@ logger.level = Logger.const_get(log_level)
 
 # Load configuration
 config = AppConfig.new
-config.validate!
 
 logger.info "Kuznik Bot starting..."
 logger.info "Configuration loaded:"
@@ -51,6 +53,10 @@ telegram_bot_handler = TelegramBotHandler.new(
 )
 logger.info "TelegramBotHandler initialized"
 
+# Launch bot with appropriate mode
+launcher = BotLauncher.new(config, logger, telegram_bot_handler)
+logger.info "BotLauncher initialized for mode: #{config.bot_mode}"
+
 # Handle signals
 trap('INT') do
   logger.info "Received SIGINT, shutting down..."
@@ -58,5 +64,5 @@ trap('INT') do
 end
 
 # Start the bot
-logger.info "Starting bot listener..."
-telegram_bot_handler.start
+logger.info "Starting bot..."
+launcher.start

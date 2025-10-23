@@ -14,3 +14,7 @@ end
 group :development do
   gem 'rake', '~> 13.0'
 end
+
+gem "ostruct", "~> 0.6.3"
+
+gem "webrick", "~> 1.9"

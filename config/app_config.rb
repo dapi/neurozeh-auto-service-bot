@@ -21,12 +21,35 @@ class AppConfig < Anyway::Config
     max_history_size: 10,
 
     # Logging
-    log_level: 'info'
+    log_level: 'info',
+
+    # Bot mode configuration (polling or webhook)
+    bot_mode: 'polling',
+
+    # Webhook configuration
+    webhook_url: '',
+    webhook_port: 3000,
+    webhook_host: '0.0.0.0',
+    webhook_path: '/telegram/webhook'
   )
 
-  def validate!
-    raise 'ANTHROPIC_AUTH_TOKEN is required' if anthropic_auth_token.to_s.empty?
-    raise 'TELEGRAM_BOT_TOKEN is required' if telegram_bot_token.to_s.empty?
+  # Declare required parameters using anyway_config's required method
+  required :anthropic_auth_token, :telegram_bot_token
+
+  # Custom validation for system prompt file and bot configuration
+  def initialize
+    super
+
     raise 'System prompt file not found' unless File.exist?(system_prompt_path)
+
+    # Validate bot mode
+    unless %w[polling webhook].include?(bot_mode)
+      raise "BOT_MODE must be 'polling' or 'webhook', got: #{bot_mode}"
+    end
+
+    # Validate webhook URL for webhook mode
+    if bot_mode == 'webhook' && webhook_url.to_s.empty?
+      raise 'WEBHOOK_URL is required when BOT_MODE is webhook'
+    end
   end
 end

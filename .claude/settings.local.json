@@ -6,7 +6,9 @@
       "Bash(rake test:*)",
       "Bash(bundle exec rake test:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(ruby -c:*)"
     ],
     "deny": [],
     "ask": []
