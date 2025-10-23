@@ -111,7 +111,8 @@ class TelegramBotHandler
       # Send response to user
       bot.api.send_message(
         chat_id: chat_id,
-        text: response
+        text: response,
+        parse_mode: 'Markdown'
       )
 
       @logger.info "Successfully processed message for user #{user_id}"
