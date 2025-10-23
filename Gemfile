@@ -4,10 +4,9 @@ source 'https://rubygems.org'
 
 ruby '>= 3.2.0'
 
+gem 'anthropic', '~> 1.12'
 gem 'anyway_config', '~> 2.6'
 gem 'bigdecimal', '~> 3.0'
-gem 'dotenv', '~> 3.0'
-gem 'anthropic', '~> 1.12'
 gem 'telegram-bot-ruby', '~> 0.20.0'
 
 group :test do
@@ -16,6 +15,7 @@ group :test do
 end
 
 group :development do
+  gem 'debug', '~> 1.11'
   gem 'rake', '~> 13.0'
   gem 'rubocop', '~> 1.66'
   gem 'rubocop-minitest', '~> 0.36'

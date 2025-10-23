@@ -18,36 +18,31 @@ class TelegramBotHandler
 
     # Используем встроенный метод Telegram::Bot::Client.run для правильного polling
     Telegram::Bot::Client.run(@config.telegram_bot_token, logger: @logger) do |bot|
-      @logger.info "Telegram bot client initialized successfully"
+      @logger.info 'Telegram bot client initialized successfully'
 
       # Тестируем соединение
       begin
         me = bot.api.get_me
         @logger.info "SUCCESS: Connected to bot #{me['result']['first_name']} (@#{me['result']['username']})"
-      rescue => e
+      rescue StandardError => e
         @logger.error "Failed to connect to Telegram API: #{e.class} - #{e.message}"
         raise e
       end
 
-      @logger.info "Starting polling loop..."
+      @logger.info 'Starting polling loop...'
 
       bot.listen do |message|
-        begin
-          if @config.debug_api_requests
-            @logger.debug "Received message: #{message.inspect}"
-          end
+        @logger.debug "Received message: #{message.inspect}" if @config.debug_api_requests
 
-          process_message(message, bot)
-        rescue Telegram::Bot::Exceptions::ResponseError => e
-          @logger.error "Telegram API error: #{e.class} - #{e.message}"
-          @logger.error "Error code: #{e.error_code}" if e.respond_to?(:error_code)
-          @logger.error "Response body: #{e.response.body}" if e.respond_to?(:response)
-        rescue StandardError => e
-          @logger.error "Error processing message: #{e.class} - #{e.message}"
-        end
+        process_message(message, bot)
+      rescue Telegram::Bot::Exceptions::ResponseError => e
+        @logger.error "Telegram API error: #{e.class} - #{e.message}"
+        @logger.error "Error code: #{e.error_code}" if e.respond_to?(:error_code)
+        @logger.error "Response body: #{e.response.body}" if e.respond_to?(:response)
+      rescue StandardError => e
+        @logger.error "Error processing message: #{e.class} - #{e.message}"
       end
     end
-
   rescue StandardError => e
     @logger.error "Fatal error in polling: #{e.class} - #{e.message}"
     @logger.error "Backtrace: #{e.backtrace.first(10).join("\n")}"
@@ -130,12 +125,10 @@ class TelegramBotHandler
   end
 
   def read_welcome_message
-    begin
-      File.read(@config.welcome_message_path)
-    rescue StandardError => e
-      @logger.error "Error reading welcome message: #{e.message}"
-      # Fallback сообщение на случай ошибки чтения файла
-      'Привет! Я бот для записи на услуги автосервиса. Чем я могу вам помочь?'
-    end
+    File.read(@config.welcome_message_path)
+  rescue StandardError => e
+    @logger.error "Error reading welcome message: #{e.message}"
+    # Fallback сообщение на случай ошибки чтения файла
+    'Привет! Я бот для записи на услуги автосервиса. Чем я могу вам помочь?'
   end
 end

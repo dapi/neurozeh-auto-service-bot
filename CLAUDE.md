@@ -103,12 +103,6 @@ Use these environment variables to control SSL behavior:
 - `SSL_CERT_FILE=/dev/null` - Disable certificate verification
 - `CURL_CA_BUNDLE=/dev/null` - Disable CA bundle verification
 
-#### 4. Debug Mode
-Enable debug mode for detailed SSL logging:
-```bash
-DEBUG_API_REQUESTS=true ruby bot.rb
-```
-
 ### Common API Endpoint Issues
 
 If you see 410 Gone errors, the API endpoint may have changed. Current known issues:

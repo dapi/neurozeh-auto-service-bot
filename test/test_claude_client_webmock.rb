@@ -35,8 +35,8 @@ class TestClaudeClientWebmock < Minitest::Test
   def test_initialization_loads_price_list
     client = ClaudeClient.new(@config, @logger)
     price_list = client.instance_variable_get(:@price_list)
-    assert_includes price_list, "АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ"
-    assert_includes price_list, "Диагностика двигателя"
+    assert_includes price_list, 'АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'
+    assert_includes price_list, 'Диагностика двигателя'
   end
 
   def test_send_message_with_mock_success
@@ -63,9 +63,9 @@ class TestClaudeClientWebmock < Minitest::Test
     mock_messages.expect(:create, mock_response) do |params|
       create_params = params
       params[:model] == 'glm-4.6' &&
-      params[:max_tokens] == 1500 &&
-      params[:messages] == [{ role: 'user', content: 'Hello' }] &&
-      params[:system].is_a?(String)
+        params[:max_tokens] == 1500 &&
+        params[:messages] == [{ role: 'user', content: 'Hello' }] &&
+        params[:system].is_a?(String)
     end
 
     mock_anthropic_client.expect(:messages, mock_messages)
@@ -99,7 +99,7 @@ class TestClaudeClientWebmock < Minitest::Test
 
     # Verify the system parameter was set correctly
     assert_kind_of String, create_params[:system]
-    assert_includes create_params[:system], "ПРАЙС-ЛИСТ"
+    assert_includes create_params[:system], 'ПРАЙС-ЛИСТ'
 
     # Verify all mocks were called
     mock_text_block.verify

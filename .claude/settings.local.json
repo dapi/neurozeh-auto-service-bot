@@ -31,7 +31,9 @@
       "Bash(timeout:*)",
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/lib/telegram/bot/**)",
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/lib/telegram/**)",
-      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/**)"
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/**)",
+      "Bash(gem list:*)",
+      "Bash(gem which:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'test_helper'
-require 'telegram/bot/types/message'
+require 'telegram/bot'
 
 class TestTelegramBotHandler < Minitest::Test
   def setup
@@ -45,7 +45,7 @@ class TestTelegramBotHandler < Minitest::Test
 
   def test_read_welcome_message_fallback_on_error
     # Mock File.read to raise an error and logger to expect error call
-    File.stub(:read, ->(path) { raise StandardError, 'File error' }) do
+    File.stub(:read, ->(_path) { raise StandardError, 'File error' }) do
       @logger.expect(:error, nil, [/Error reading welcome message/])
 
       welcome_text = @handler.send(:read_welcome_message)
@@ -78,7 +78,7 @@ class TestTelegramBotHandler < Minitest::Test
 
     # Mock logger
     @logger.expect(:info, nil, [/Received message/])
-    @logger.expect(:info, nil, [/issued \/start command/])
+    @logger.expect(:info, nil, [%r{issued /start command}])
 
     @handler.send(:process_message, message, bot)
 

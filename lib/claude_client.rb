@@ -20,7 +20,7 @@ class ClaudeClient
     @price_list = load_and_format_price_list
 
     # Инициализируем Anthropic клиент
-    @client = Anthropic::Client.new()
+    @client = Anthropic::Client.new
 
     @logger.info 'ClaudeClient initialized with anthropic gem, system prompt and price list'
   end
@@ -140,5 +140,4 @@ class ClaudeClient
 
     formatted
   end
-
 end

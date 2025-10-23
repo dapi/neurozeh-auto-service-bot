@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'test_helper'
+require 'telegram/bot'
 require_relative '../lib/webhook_starter'
 
 class TestWebhookStarter < Minitest::Test

@@ -36,7 +36,7 @@ class AppConfig < Anyway::Config
     webhook_url: '',
     webhook_port: 3000,
     webhook_host: '0.0.0.0',
-    webhook_path: '/telegram/webhook',
+    webhook_path: '/telegram/webhook'
   )
 
   # Declare required parameters using anyway_config's required method

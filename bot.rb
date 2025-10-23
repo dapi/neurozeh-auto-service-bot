@@ -1,21 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'bundler/setup'
-require 'dotenv/load'
-require 'logger'
-
-# Load configuration
-require_relative 'config/app_config'
-
-# Load components
-require_relative 'lib/rate_limiter'
-require_relative 'lib/conversation_manager'
-require_relative 'lib/claude_client'
-require_relative 'lib/telegram_bot_handler'
-require_relative 'lib/bot_launcher'
-require_relative 'lib/polling_starter'
-require_relative 'lib/webhook_starter'
+require_relative 'config/boot'
 
 # Initialize logger
 log_level = ENV['LOG_LEVEL']&.upcase || 'INFO'
