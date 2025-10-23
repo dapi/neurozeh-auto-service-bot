@@ -6,7 +6,7 @@ class TestClaudeClientPriceList < Minitest::Test
   def setup
     # Создаем тестовую конфигурацию и файлы
     File.write('./test/fixtures/test_system_prompt.md', 'test prompt')
-    File.write('./test/fixtures/test_price_list.csv', "Прайс лист\nПОКРАСКА\nКапот,1000,2000,3000")
+    File.write('./test/fixtures/test_price_list.csv', "Прайс лист\nКАТЕГОРИЯ УСЛУГ\nКапот,1000,2000,3000")
 
     @config = AppConfig.new(
       anthropic_auth_token: 'test_token',
@@ -34,9 +34,9 @@ class TestClaudeClientPriceList < Minitest::Test
   def test_load_price_list_success
     price_list = @client.instance_variable_get(:@price_list)
     refute_nil price_list
-    assert_includes price_list, 'ПОКРАСКА'
+    assert_includes price_list, 'КАТЕГОРИЯ УСЛУГ'
     assert_includes price_list, '📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'
-    assert_includes price_list, '🎨'
+    assert_includes price_list, '📋'
   end
 
   def test_price_list_formatting
@@ -80,6 +80,6 @@ class TestClaudeClientPriceList < Minitest::Test
 
     # Проверяем наличие важных компонентов в прайс-листе
     assert_includes price_list, '📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'
-    assert_includes price_list, 'ПОКРАСКА'
+    assert_includes price_list, 'КАТЕГОРИЯ УСЛУГ'
   end
 end

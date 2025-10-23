@@ -13,7 +13,8 @@
       "WebSearch",
       "WebFetch(domain:www.rubydoc.info)",
       "WebFetch(domain:rubygems.org)",
-      "Bash(ruby:*)"
+      "Bash(ruby:*)",
+      "Bash(gem search:*)"
     ],
     "deny": [],
     "ask": []

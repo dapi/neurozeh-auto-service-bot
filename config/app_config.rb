@@ -25,6 +25,7 @@ class AppConfig < Anyway::Config
 
     # Logging
     log_level: 'info',
+    debug_api_requests: false,
 
     # Bot mode configuration (polling or webhook)
     bot_mode: 'polling',
