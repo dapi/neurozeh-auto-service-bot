@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'test_helper'
 require_relative '../lib/webhook_starter'
 
@@ -45,7 +47,11 @@ class TestWebhookStarter < Minitest::Test
       starter.send(:handle_webhook_request, req, res)
     end
 
-    assert_equal 200, res.status rescue true  # Status is set
+    begin
+      assert_equal 200, res.status
+    rescue StandardError
+      true
+    end
   end
 
   def test_handle_webhook_request_non_post_returns_405

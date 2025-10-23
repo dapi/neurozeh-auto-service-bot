@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'test_helper'
 
 class TestClaudeClient < Minitest::Test
@@ -40,7 +42,7 @@ class TestClaudeClient < Minitest::Test
   def test_send_message_error_handling
     client = ClaudeClient.new(@config, @logger)
 
-    ClaudeClient.stub(:post, -> { raise StandardError.new('API Error') }) do
+    ClaudeClient.stub(:post, -> { raise StandardError, 'API Error' }) do
       assert_raises(StandardError) do
         client.send_message([{ role: 'user', content: 'Hello' }])
       end
@@ -52,8 +54,8 @@ class TestClaudeClient < Minitest::Test
 
     # Create a proper mock response object
     mock_response = Object.new
-    def mock_response.success?; true; end
-    def mock_response.body; '{"content":[{"text":"Hello from Claude"}]}'; end
+    def mock_response.success? = true
+    def mock_response.body = '{"content":[{"text":"Hello from Claude"}]}'
 
     # Test through public method using stub
     ClaudeClient.stub(:post, mock_response) do

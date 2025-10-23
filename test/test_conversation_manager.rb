@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'test_helper'
 
 class TestConversationManager < Minitest::Test
@@ -6,7 +8,7 @@ class TestConversationManager < Minitest::Test
   end
 
   def test_empty_history_for_new_user
-    assert_equal [], @manager.get_history(1)
+    assert_empty @manager.get_history(1)
   end
 
   def test_add_and_retrieve_message
@@ -40,18 +42,18 @@ class TestConversationManager < Minitest::Test
   def test_clear_history
     @manager.add_message(1, 'user', 'Hello')
     @manager.add_message(1, 'assistant', 'Hi')
-    assert !@manager.get_history(1).empty?
+    refute_empty @manager.get_history(1)
 
     @manager.clear_history(1)
-    assert_equal [], @manager.get_history(1)
+    assert_empty @manager.get_history(1)
   end
 
   def test_clear_all
     @manager.add_message(1, 'user', 'Hello')
     @manager.add_message(2, 'user', 'Hi')
     @manager.clear_all
-    assert_equal [], @manager.get_history(1)
-    assert_equal [], @manager.get_history(2)
+    assert_empty @manager.get_history(1)
+    assert_empty @manager.get_history(2)
   end
 
   def test_separate_conversations
@@ -67,10 +69,10 @@ class TestConversationManager < Minitest::Test
   end
 
   def test_user_conversation_exists
-    assert !@manager.user_conversation_exists?(1)
+    refute @manager.user_conversation_exists?(1)
     @manager.add_message(1, 'user', 'Hello')
     assert @manager.user_conversation_exists?(1)
     @manager.clear_history(1)
-    assert !@manager.user_conversation_exists?(1)
+    refute @manager.user_conversation_exists?(1)
   end
 end

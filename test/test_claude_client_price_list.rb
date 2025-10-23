@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'test_helper'
 
 class TestClaudeClientPriceList < Minitest::Test
@@ -15,7 +17,7 @@ class TestClaudeClientPriceList < Minitest::Test
 
     # Создаем mock logger для тестов
     @mock_logger = Minitest::Mock.new
-    @mock_logger.expect(:info, nil, ["ClaudeClient initialized with system prompt and price list"])
+    @mock_logger.expect(:info, nil, ['ClaudeClient initialized with system prompt and price list'])
 
     @client = ClaudeClient.new(@config, @mock_logger)
   end
@@ -26,7 +28,7 @@ class TestClaudeClientPriceList < Minitest::Test
     File.delete('./test/fixtures/test_price_list.csv') if File.exist?('./test/fixtures/test_price_list.csv')
 
     # Verify mock expectations
-    @mock_logger.verify if @mock_logger
+    @mock_logger&.verify
   end
 
   def test_load_price_list_success
@@ -54,8 +56,8 @@ class TestClaudeClientPriceList < Minitest::Test
     )
 
     mock_logger = Minitest::Mock.new
-    mock_logger.expect(:info, nil, ["ClaudeClient initialized with system prompt and price list"])
-    mock_logger.expect(:error, nil, ["Price list file is empty: ./test/fixtures/empty_price_list.csv"])
+    mock_logger.expect(:info, nil, ['ClaudeClient initialized with system prompt and price list'])
+    mock_logger.expect(:error, nil, ['Price list file is empty: ./test/fixtures/empty_price_list.csv'])
 
     client = ClaudeClient.new(config, mock_logger)
 
@@ -73,8 +75,8 @@ class TestClaudeClientPriceList < Minitest::Test
 
     refute_nil system_prompt
     refute_nil price_list
-    assert system_prompt.length > 0
-    assert price_list.length > 0
+    assert system_prompt.length.positive?
+    assert price_list.length.positive?
 
     # Проверяем наличие важных компонентов в прайс-листе
     assert_includes price_list, '📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ'

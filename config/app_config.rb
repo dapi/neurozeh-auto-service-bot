@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'anyway_config'
 
 class AppConfig < Anyway::Config
@@ -61,34 +63,34 @@ class AppConfig < Anyway::Config
     raise ArgumentError, "Price list file not readable: #{path}" unless File.readable?(path)
 
     # Дополнительная валидация формата CSV
-    unless path.end_with?('.csv')
-      raise ArgumentError, "Price list file must be a CSV file: #{path}"
-    end
+    return if path.end_with?('.csv')
+
+    raise ArgumentError, "Price list file must be a CSV file: #{path}"
   end
 
   def validate_bot_mode
-    unless %w[polling webhook].include?(bot_mode)
-      raise ArgumentError, "BOT_MODE must be 'polling' or 'webhook', got: #{bot_mode}"
-    end
+    return if %w[polling webhook].include?(bot_mode)
+
+    raise ArgumentError, "BOT_MODE must be 'polling' or 'webhook', got: #{bot_mode}"
   end
 
   def validate_webhook_requirements
-    if bot_mode == 'webhook' && webhook_url.to_s.empty?
-      raise ArgumentError, 'WEBHOOK_URL is required when BOT_MODE is webhook'
-    end
+    return unless bot_mode == 'webhook' && webhook_url.to_s.empty?
+
+    raise ArgumentError, 'WEBHOOK_URL is required when BOT_MODE is webhook'
   end
 
   def validate_numeric_parameters
-    unless rate_limit_requests.is_a?(Integer) && rate_limit_requests > 0
-      raise ArgumentError, "RATE_LIMIT_REQUESTS must be a positive integer"
+    unless rate_limit_requests.is_a?(Integer) && rate_limit_requests.positive?
+      raise ArgumentError, 'RATE_LIMIT_REQUESTS must be a positive integer'
     end
 
-    unless rate_limit_period.is_a?(Integer) && rate_limit_period > 0
-      raise ArgumentError, "RATE_LIMIT_PERIOD must be a positive integer"
+    unless rate_limit_period.is_a?(Integer) && rate_limit_period.positive?
+      raise ArgumentError, 'RATE_LIMIT_PERIOD must be a positive integer'
     end
 
-    unless max_history_size.is_a?(Integer) && max_history_size > 0
-      raise ArgumentError, "MAX_HISTORY_SIZE must be a positive integer"
-    end
+    return if max_history_size.is_a?(Integer) && max_history_size.positive?
+
+    raise ArgumentError, 'MAX_HISTORY_SIZE must be a positive integer'
   end
 end

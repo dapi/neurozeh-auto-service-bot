@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'test_helper'
 
 class TestAppConfig < Minitest::Test
@@ -52,5 +54,4 @@ class TestAppConfig < Minitest::Test
       $stderr = stderr_backup
     end
   end
-
 end

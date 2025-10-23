@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
 
 ruby '>= 3.2.0'
 
-gem 'telegram-bot-ruby', '~> 0.20.0'
-gem 'httparty', '~> 0.22.0'
-gem 'dotenv', '~> 3.0'
 gem 'anyway_config', '~> 2.6'
+gem 'dotenv', '~> 3.0'
+gem 'httparty', '~> 0.22.0'
+gem 'telegram-bot-ruby', '~> 0.20.0'
 
 group :test do
   gem 'minitest', '~> 5.20'
@@ -19,6 +21,6 @@ group :development do
   gem 'rubocop-rake', '~> 0.6'
 end
 
-gem "ostruct", "~> 0.6.3"
+gem 'ostruct', '~> 0.6.3'
 
-gem "webrick", "~> 1.9"
+gem 'webrick', '~> 1.9'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'test_helper'
 require_relative '../lib/bot_launcher'
 require_relative '../lib/polling_starter'
@@ -50,7 +52,7 @@ class TestBotLauncher < Minitest::Test
     # Set up expectations for multiple calls to bot_mode
     3.times { @config.expect(:bot_mode, 'invalid') }
 
-    assert_raises(RuntimeError, "Unknown bot mode: invalid") do
+    assert_raises(RuntimeError, 'Unknown bot mode: invalid') do
       launcher.start
     end
   end
