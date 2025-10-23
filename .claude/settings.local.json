@@ -14,7 +14,12 @@
       "WebFetch(domain:www.rubydoc.info)",
       "WebFetch(domain:rubygems.org)",
       "Bash(ruby:*)",
-      "Bash(gem search:*)"
+      "Bash(gem search:*)",
+      "Bash(bundle:*)",
+      "Bash(gem server:*)",
+      "Bash(gem install:*)",
+      "Bash(gem environment:*)",
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/anthropic-1.12.0/**)"
     ],
     "deny": [],
     "ask": []

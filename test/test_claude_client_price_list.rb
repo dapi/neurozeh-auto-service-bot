@@ -10,14 +10,16 @@ class TestClaudeClientPriceList < Minitest::Test
 
     @config = AppConfig.new(
       anthropic_auth_token: 'test_token',
+      anthropic_base_url: 'https://api.anthropic.com',
       telegram_bot_token: 'test_token',
       system_prompt_path: './test/fixtures/test_system_prompt.md',
-      price_list_path: './test/fixtures/test_price_list.csv'
+      price_list_path: './test/fixtures/test_price_list.csv',
+      debug_api_requests: false
     )
 
     # Создаем mock logger для тестов
     @mock_logger = Minitest::Mock.new
-    @mock_logger.expect(:info, nil, ['ClaudeClient initialized with system prompt and price list'])
+    @mock_logger.expect(:info, nil, ['ClaudeClient initialized with anthropic gem, system prompt and price list'])
 
     @client = ClaudeClient.new(@config, @mock_logger)
   end
@@ -50,13 +52,15 @@ class TestClaudeClientPriceList < Minitest::Test
 
     config = AppConfig.new(
       anthropic_auth_token: 'test_token',
+      anthropic_base_url: 'https://api.anthropic.com',
       telegram_bot_token: 'test_token',
       system_prompt_path: './test/fixtures/test_system_prompt.md',
-      price_list_path: './test/fixtures/empty_price_list.csv'
+      price_list_path: './test/fixtures/empty_price_list.csv',
+      debug_api_requests: false
     )
 
     mock_logger = Minitest::Mock.new
-    mock_logger.expect(:info, nil, ['ClaudeClient initialized with system prompt and price list'])
+    mock_logger.expect(:info, nil, ['ClaudeClient initialized with anthropic gem, system prompt and price list'])
     mock_logger.expect(:error, nil, ['Price list file is empty: ./test/fixtures/empty_price_list.csv'])
 
     client = ClaudeClient.new(config, mock_logger)

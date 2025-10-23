@@ -8,10 +8,12 @@ class AppConfig < Anyway::Config
 
   # Claude API configuration
   attr_config(
-    anthropic_base_url: 'https://api.z.ai/api/anthropic',
     anthropic_auth_token: '',
-    anthropic_model: 'glm-4.5-air',
-    system_prompt_path: './system-prompt.md',
+    anthropic_model: 'claude-3-5-sonnet-20241022',
+    anthropic_base_url: 'https://api.anthropic.com',
+    system_prompt_path: './config/system-prompt.md',
+    welcome_message_path: './config/welcome-message.md',
+    price_list_path: './data/кузник.csv',
 
     # Telegram configuration
     telegram_bot_token: '',
@@ -35,16 +37,14 @@ class AppConfig < Anyway::Config
     webhook_port: 3000,
     webhook_host: '0.0.0.0',
     webhook_path: '/telegram/webhook',
-
-    # Price list configuration
-    price_list_path: './data/кузник.csv'
   )
 
   # Declare required parameters using anyway_config's required method
   required :anthropic_auth_token, :telegram_bot_token
 
-  # Валидация с использованием on_load callbacks вместо manual checks in initialize
+  # Валидация с использованием on_load callbacks вместо manual checks в initialize
   on_load :validate_system_prompt_file
+  on_load :validate_welcome_message_file
   on_load :validate_price_list_file
   on_load :validate_bot_mode
   on_load :validate_webhook_requirements
@@ -56,6 +56,12 @@ class AppConfig < Anyway::Config
     path = system_prompt_path
     raise ArgumentError, "System prompt file not found: #{path}" unless File.exist?(path)
     raise ArgumentError, "System prompt file not readable: #{path}" unless File.readable?(path)
+  end
+
+  def validate_welcome_message_file
+    path = welcome_message_path
+    raise ArgumentError, "Welcome message file not found: #{path}" unless File.exist?(path)
+    raise ArgumentError, "Welcome message file not readable: #{path}" unless File.readable?(path)
   end
 
   def validate_price_list_file

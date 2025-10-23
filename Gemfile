@@ -7,8 +7,7 @@ ruby '>= 3.2.0'
 gem 'anyway_config', '~> 2.6'
 gem 'bigdecimal', '~> 3.0'
 gem 'dotenv', '~> 3.0'
-gem 'faraday', '~> 2.0'
-gem 'faraday-detailed_logger', '~> 2.1'
+gem 'anthropic', '~> 1.12'
 gem 'telegram-bot-ruby', '~> 0.20.0'
 
 group :test do

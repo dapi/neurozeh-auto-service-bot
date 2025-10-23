@@ -34,19 +34,21 @@ The application follows a modular architecture with clear separation of concerns
 ### Core Components
 - **BotLauncher** (`lib/bot_launcher.rb`): Entry point that selects polling or webhook mode
 - **TelegramBotHandler** (`lib/telegram_bot_handler.rb`): Main message processing logic
-- **ClaudeClient** (`lib/claude_client.rb`): HTTP client for Claude API communication
+- **ClaudeClient** (`lib/claude_client.rb`): Claude API communication using official anthropic gem
 - **ConversationManager** (`lib/conversation_manager.rb`): Thread-safe conversation history storage
 - **RateLimiter** (`lib/rate_limiter.rb`): In-memory rate limiting per user
 - **PollingStarter** / **WebhookStarter**: Mode-specific bot starters
 
 ### Configuration
 - **AppConfig** (`config/app_config.rb`): Uses `anyway_config` gem for environment-based configuration
-- Validates required parameters and system prompt file existence
+- Validates required parameters and file existence (system prompt, welcome message, price list)
 - Supports both polling and webhook modes with appropriate validation
+- **Environment Variables**: `ANTHROPIC_AUTH_TOKEN`, `TELEGRAM_BOT_TOKEN`, `SYSTEM_PROMPT_PATH`, `WELCOME_MESSAGE_PATH`
 
 ### Data Sources
 - **Service Pricing**: `data/кузник.csv` contains the complete price list for car services
-- **System Prompt**: `system-prompt.md` defines Claude's behavior and context
+- **System Prompt**: `config/system-prompt.md` defines Claude's behavior and context
+- **Welcome Message**: `config/welcome-message.md` contains the welcome message for /start command with Markdown formatting
 - **Implementation Plans**: Stored in `.protocols/` directory
 
 ## Key Patterns
@@ -56,6 +58,8 @@ The application follows a modular architecture with clear separation of concerns
 3. **Mode Selection**: BotLauncher abstracts polling vs webhook implementation details
 4. **Thread Safety**: ConversationManager uses Mutex for safe concurrent access
 5. **Rate Limiting**: Per-user in-memory counters with automatic cleanup
+6. **Welcome Message Management**: External file-based welcome messages with Markdown support and fallback handling
+7. **Error Resilience**: Graceful fallbacks for file reading errors and API failures using anthropic gem's built-in error handling
 
 ## Testing
 
@@ -67,3 +71,5 @@ Tests are located in `test/` directory and use Minitest framework. Run with `rak
 - Use MCP context7 for studying Ruby gems
 - Service prices and implementation plans are referenced in CLAUDE.md for quick access
 - The bot supports Russian language interface (car service context)
+- НЕ используются File.write и File.delete и прочие Не безопасные методы в тестах
+- НЕ изменеются ENV-ы в тестах

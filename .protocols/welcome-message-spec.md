@@ -24,7 +24,7 @@ bot.api.send_message(
 ```ruby
 attr_config(
   # ... существующие параметры
-  welcome_message_path: './welcome-message.md'
+  welcome_message_path: './config/welcome-message.md'
 )
 ```
 
