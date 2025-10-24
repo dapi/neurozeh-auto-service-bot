@@ -58,7 +58,8 @@
       "Read(//Users/danil/**)",
       "Bash(pgrep:*)",
       "WebFetch(domain:rubyllm.com)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(rake:*)"
     ],
     "deny": [],
     "ask": []

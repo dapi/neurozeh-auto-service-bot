@@ -6,13 +6,11 @@ require 'ostruct'
 
 class TestRequestDetector < Minitest::Test
   def setup
-    @config = Minitest::Mock.new
-    @config.expect :admin_chat_id, 123456789
-    @config.expect :telegram_bot_token, 'test_token'
+    # Mock AppConfig to return test values
+    @admin_chat_id = 123456789
+    @telegram_bot_token = 'test_token'
 
-    # Use NullLogger for tests to avoid actual logging
-    @logger = NullLogger.new
-    @detector = RequestDetector.new(@config, @logger)
+    @detector = RequestDetector.new
   end
 
   def test_detect_booking_request
@@ -23,25 +21,29 @@ class TestRequestDetector < Minitest::Test
 
     # Verify that send_message is called with correct parameters
     api_mock.expect :send_message, nil do |args|
-      args[:chat_id] == 123456789 &&
+      args[:chat_id] == @admin_chat_id &&
       args[:parse_mode] == 'Markdown' &&
       args[:text].is_a?(String) &&
       args[:text].include?('НОВАЯ ЗАЯВКА')
     end
 
-    Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
-      result = @detector.execute(
-        message_text: 'Хочу записаться на диагностику подвески',
-        user_id: 123,
-        username: 'testuser',
-        first_name: 'Test'
-      )
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
+        Application.logger.stub(:info, nil) do
+          Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
+            result = @detector.execute(
+              message_text: 'Хочу записаться на диагностику подвески',
+              user_id: 123,
+              username: 'testuser',
+              first_name: 'Test'
+            )
 
-      assert result[:success]
-      assert_includes result[:message], 'Заявка отправлена'
+            assert result[:success]
+            assert_includes result[:message], 'Заявка отправлена'
+          end
+        end
+      end
     end
-
-    @config.verify
   end
 
   def test_detect_pricing_request_via_execute
@@ -51,20 +53,26 @@ class TestRequestDetector < Minitest::Test
     telegram_bot_mock.expect :api, api_mock
 
     api_mock.expect :send_message, nil do |args|
-      args[:chat_id] == 123456789 &&
+      args[:chat_id] == @admin_chat_id &&
       args[:parse_mode] == 'Markdown' &&
       args[:text].is_a?(String)
     end
 
-    Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
-      result = @detector.execute(
-        message_text: 'Сколько стоит замена масла для Renault Logan?',
-        user_id: 456,
-        username: nil,
-        first_name: 'Иван'
-      )
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
+        Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
+          result = @detector.execute(
+            message_text: 'Сколько стоит замена масла для Renault Logan?',
+            user_id: 456,
+            username: nil,
+            first_name: 'Иван'
+          )
 
-      assert result[:success]
+          assert result[:success]
+        end
+      end
     end
   end
 
@@ -75,18 +83,24 @@ class TestRequestDetector < Minitest::Test
     telegram_bot_mock.expect :api, api_mock
 
     api_mock.expect :send_message, nil do |args|
-      args[:chat_id] == 123456789 &&
+      args[:chat_id] == @admin_chat_id &&
       args[:parse_mode] == 'Markdown' &&
       args[:text].is_a?(String)
     end
 
-    Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
-      result = @detector.execute(
-        message_text: 'Нужно сделать диагностику двигателя',
-        user_id: 789
-      )
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
+        Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
+          result = @detector.execute(
+            message_text: 'Нужно сделать диагностику двигателя',
+            user_id: 789
+          )
 
-      assert result[:success]
+          assert result[:success]
+        end
+      end
     end
   end
 
@@ -97,11 +111,13 @@ class TestRequestDetector < Minitest::Test
     telegram_bot_mock.expect :api, api_mock
 
     api_mock.expect :send_message, nil do |args|
-      args[:chat_id] == 123456789 &&
+      args[:chat_id] == @admin_chat_id &&
       args[:parse_mode] == 'Markdown' &&
       args[:text].is_a?(String)
     end
 
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
     Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
       result = @detector.execute(
         message_text: 'Помогите выбрать лучшие тормозные колодки для Kia Rio',
@@ -111,6 +127,8 @@ class TestRequestDetector < Minitest::Test
       )
 
       assert result[:success]
+    end
+      end
     end
   end
 
@@ -153,6 +171,8 @@ class TestRequestDetector < Minitest::Test
       raise Telegram::Bot::Exceptions::ResponseError.new(response)
     end
 
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
     Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
       result = detector_error.execute(
         message_text: 'Записаться на ТО',
@@ -162,6 +182,8 @@ class TestRequestDetector < Minitest::Test
       refute result[:success]
       # The error should include "Telegram API error" message
       assert_match(/Telegram API error/i, result[:error])
+    end
+      end
     end
 
     config_error.verify
@@ -176,11 +198,13 @@ class TestRequestDetector < Minitest::Test
     telegram_bot_mock.expect :api, api_mock
 
     api_mock.expect :send_message, nil do |args|
-      args[:chat_id] == 123456789 &&
+      args[:chat_id] == @admin_chat_id &&
       args[:parse_mode] == 'Markdown' &&
       args[:text].is_a?(String)
     end
 
+    AppConfig.stub(:admin_chat_id, @admin_chat_id) do
+      AppConfig.stub(:telegram_bot_token, @telegram_bot_token) do
     Telegram::Bot::Client.stub(:new, telegram_bot_mock) do
       result = @detector.execute(
         message_text: 'Когда можете посмотреть?',
@@ -189,6 +213,8 @@ class TestRequestDetector < Minitest::Test
       )
 
       assert result[:success], "Expected request to be detected, got: #{result}"
+    end
+      end
     end
   end
 end

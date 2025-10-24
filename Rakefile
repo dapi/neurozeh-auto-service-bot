@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
+require 'standalone_migrations'
 require 'rake/testtask'
 require 'rubocop/rake_task'
+
+StandaloneMigrations::Tasks.load_tasks(name: 'auto-service-bot')
 
 task default: %i[test rubocop]
 

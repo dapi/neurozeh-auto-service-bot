@@ -3,11 +3,10 @@
 require 'csv'
 
 class CostCalculator
-  def initialize(price_list_path, logger = nil)
+  def initialize(price_list_path)
     @price_list_path = price_list_path
-    @logger = logger || Logger.new(IO::NULL)
     @price_list = load_price_list
-    @logger.info "CostCalculator initialized with #{@price_list.size} services"
+    Application.logger.info "CostCalculator initialized with #{@price_list.size} services"
   end
 
   # Основной метод расчета стоимости
@@ -15,7 +14,7 @@ class CostCalculator
     return nil unless services && services.any?
     return nil unless car_class
 
-    @logger.debug "Calculating cost for #{services.size} services, car class #{car_class}"
+    Application.logger.debug "Calculating cost for #{services.size} services, car class #{car_class}"
 
     total = 0
     calculated_services = []
@@ -31,7 +30,7 @@ class CostCalculator
         }
         total += price_info[:price]
       else
-        @logger.warn "Service not found in price list: #{service}"
+        Application.logger.warn "Service not found in price list: #{service}"
         # Добавляем услугу с пометкой "по запросу"
         calculated_services << {
           name: "#{service} (расчет по запросу)",
@@ -50,7 +49,7 @@ class CostCalculator
       car_class: car_class
     }
 
-    @logger.debug "Cost calculation result: #{result.inspect}"
+    Application.logger.debug "Cost calculation result: #{result.inspect}"
     result
   end
 
@@ -147,9 +146,9 @@ class CostCalculator
         end
       end
 
-      @logger.info "Loaded price list: #{price_list[1].size} services for class 1, #{price_list[2].size} for class 2, #{price_list[3].size} for class 3"
+      Application.logger.info "Loaded price list: #{price_list[1].size} services for class 1, #{price_list[2].size} for class 2, #{price_list[3].size} for class 3"
     rescue StandardError => e
-      @logger.error "Error loading price list: #{e.message}"
+      Application.logger.error "Error loading price list: #{e.message}"
     end
 
     price_list

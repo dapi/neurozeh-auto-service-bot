@@ -41,3 +41,7 @@ tmp/
 
 # Bundle
 vendor/bundle
+
+# Database
+db/*.sqlite3
+db/*.sqlite3-*

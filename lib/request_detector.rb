@@ -16,9 +16,7 @@ class RequestDetector < RubyLLM::Tool
   param :cost_calculation, desc: "Расчет стоимости услуг", required: false
   param :dialog_context, desc: "Контекст диалога для понимания ситуации", required: false
 
-  def initialize(config, logger = nil)
-    @config = config
-    @logger = logger || Logger.new(IO::NULL)
+  def initialize
     @enriched_data = {}
   end
 
@@ -30,7 +28,7 @@ class RequestDetector < RubyLLM::Tool
       cost_calculation: cost_calculation,
       dialog_context: dialog_context
     }
-    @logger.debug "RequestDetector enriched with data: #{@enriched_data.keys}"
+    Application.logger.debug "RequestDetector enriched with data: #{@enriched_data.keys}"
   end
 
   # Метод для получения обогащенных данных
@@ -40,11 +38,11 @@ class RequestDetector < RubyLLM::Tool
 
   def execute(message_text:, user_id:, username: nil, first_name: nil, conversation_context: nil,
               car_info: nil, required_services: nil, cost_calculation: nil, dialog_context: nil)
-    @logger.info "Request detected for user #{user_id}: #{message_text[0..50]}..."
+    Application.logger.info "Request detected for user #{user_id}: #{message_text[0..50]}..."
 
     # LLM уже определил(а), что это заявка на услугу, поэтому сразу обрабатываем её
-    @logger.info "Processing service request - confirmed by LLM"
-    admin_chat_id = @config.respond_to?(:admin_chat_id) ? @config.admin_chat_id : nil
+    Application.logger.info "Processing service request - confirmed by LLM"
+    admin_chat_id = AppConfig.admin_chat_id
 
     # Обогащенные данные имеют приоритет над переданными параметрами
     final_car_info = @enriched_data[:car_info] || car_info
@@ -76,9 +74,9 @@ class RequestDetector < RubyLLM::Tool
       }
     end
   rescue StandardError => e
-    @logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
-    @logger.error "Full backtrace:"
-    e.backtrace&.each { |line| @logger.error "  #{line}" }
+    Application.logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
+    Application.logger.error "Full backtrace:"
+    e.backtrace&.each { |line| Application.logger.error "  #{line}" }
     { error: e.message }
   end
 
@@ -90,8 +88,7 @@ class RequestDetector < RubyLLM::Tool
       notification = format_admin_notification(request_info, user_id, username, first_name)
 
       # Используем Telegram bot API для отправки
-      telegram_token = @config.respond_to?(:telegram_bot_token) ? @config.telegram_bot_token : nil
-      bot = Telegram::Bot::Client.new(telegram_token)
+      bot = Telegram::Bot::Client.new(AppConfig.telegram_bot_token)
 
       bot.api.send_message(
         chat_id: admin_chat_id,
@@ -99,15 +96,15 @@ class RequestDetector < RubyLLM::Tool
         parse_mode: 'Markdown'
       )
 
-      @logger.info "Request notification sent to admin chat #{admin_chat_id}"
+      Application.logger.info "Request notification sent to admin chat #{admin_chat_id}"
       { success: true }
     rescue Telegram::Bot::Exceptions::ResponseError => e
-      @logger.error "Failed to send admin notification: #{e.message}"
+      Application.logger.error "Failed to send admin notification: #{e.message}"
       { error: "Telegram API error: #{e.message}" }
     rescue StandardError => e
-      @logger.error "❌ REQUEST ERROR: Unexpected error sending admin notification: #{e.class}: #{e.message}"
-      @logger.error "Full backtrace:"
-      e.backtrace&.each { |line| @logger.error "  #{line}" }
+      Application.logger.error "❌ REQUEST ERROR: Unexpected error sending admin notification: #{e.class}: #{e.message}"
+      Application.logger.error "Full backtrace:"
+      e.backtrace&.each { |line| Application.logger.error "  #{line}" }
       { error: "Unexpected error: #{e.message}" }
     end
   end

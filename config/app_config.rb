@@ -204,6 +204,10 @@ class AppConfig < Anyway::Config
     self.formatted_price_list = format_price_list(raw_price_list)
   end
 
+  def version
+    SemVer.find
+  end
+
   class << self
     # Make it possible to access a singleton config instance
     # via class methods (i.e., without explicitly calling `instance`)

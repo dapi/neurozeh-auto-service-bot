@@ -65,7 +65,7 @@ class DialogAnalyzer
     }
   }
 
-  def initialize(logger = nil)
+  def initialize
     @logger = logger || Logger.new(IO::NULL)
   end
 

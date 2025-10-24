@@ -23,27 +23,25 @@ class Application
 
   def rate_limiter
     @rate_limiter ||= RateLimiter.new(
-      config.rate_limit_requests,
-      config.rate_limit_period
+      AppConfig.rate_limit_requests,
+      AppConfig.rate_limit_period
     )
   end
 
   def telegram_bot_handler
     @telegram_bot_handler ||= TelegramBotHandler.new(
-      config,
       ai_client,
       rate_limiter,
-      conversation_manager,
-      logger
+      conversation_manager
     )
   end
 
   def ai_client
-    @ai_client ||= LLMClient.new(config, logger)
+    @ai_client ||= LLMClient.new(conversation_manager)
   end
 
   def conversation_manager
-    @conversation_manager ||= ConversationManager.new(config.max_history_size)
+    @conversation_manager ||= ConversationManager.new
   end
 
   def logger

@@ -64,7 +64,11 @@ class TestTelegramBotHandler < Minitest::Test
     message.expect(:group_chat_created, nil)
     message.expect(:supergroup_chat_created, nil)
     message.expect(:channel_chat_created, nil)
-    message.expect(:from, OpenStruct.new(id: 123))
+
+    # from mock будет вызываться несколько раз в разных частях кода
+    from_mock = OpenStruct.new(id: 123, username: 'testuser', first_name: 'Test')
+    message.expect(:from, from_mock)
+    message.expect(:from, from_mock)
     message.expect(:text, '/start')
     message.expect(:chat, OpenStruct.new(id: 456))
 

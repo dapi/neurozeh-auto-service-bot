@@ -9,107 +9,144 @@ require_relative 'cost_calculator'
 class LLMClient
   MAX_RETRIES = 1
 
-  def initialize(config, logger = Logger.new($stdout))
-    @config = config
-    @logger = logger
-    @logger.info 'LLMClient initialized with system prompt and price list'
+  def initialize(conversation_manager = nil)
+    @conversation_manager = conversation_manager || ConversationManager.new
   end
 
-  def send_message(messages, user_info = nil)
+  # Новый метод - отправка сообщения с использованием персистентного чата
+  def send_message_to_user(user_info, message_content, additional_context = nil)
+    Application.logger.info "Sending message to user #{user_info[:id]}"
 
-    # Комбинируем системный промпт с информацией о компании и прайс-листом
-    combined_system_prompt = build_combined_system_prompt
+    # Получаем или создаем чат для пользователя
+    db_chat = @conversation_manager.get_or_create_chat(user_info)
+
+    # Устанавливаем модель если новая запись
+    if db_chat.new_record? || db_chat.model.blank?
+      db_chat.update!(
+        model: AppConfig.llm_model,
+        provider: AppConfig.llm_provider
+      )
+    end
+
+    # Используем персистентный чат из базы данных
+    Application.logger.debug "Using persistent chat ##{db_chat.id} with provider: #{db_chat.provider}, model: #{db_chat.model}"
 
     retries = 0
     begin
-      # Определяем провайдера в зависимости от конфигурации
-      @logger.info "LLMClient model: #{@config.llm_model}, provider: #{@config.llm_provider}"
-      # Выбираем чат: кастомный или стандартный
-      chat = RubyLLM.chat model: @config.llm_model, provider: @config.llm_provider, assume_model_exists: true
+      Application.logger.info "LLMClient model: #{db_chat.model}, provider: #{db_chat.provider}"
+
+      # Создаем объект RubyLLM чата вручную
+      chat = RubyLLM.chat(
+        model: db_chat.model,
+        provider: db_chat.provider.to_sym,
+        assume_model_exists: true
+      )
+
+      # Загружаем историю диалога в RubyLLM чат
+      db_chat.messages.order(created_at: :asc).each do |msg|
+        chat.add_message(role: msg.role.to_sym, content: msg.content)
+      end
+
+      # Комбинируем системный промпт
+      combined_system_prompt = build_combined_system_prompt
 
       # Устанавливаем системные инструкции
       chat.with_instructions(combined_system_prompt, replace: true)
 
-      # Добавляем RequestDetector tool если настроен admin_chat_id и есть информация о пользователе
-      if user_info && @config.admin_chat_id
-        # Создаем обогащенный RequestDetector с предзаполненными данными
-        request_detector = create_enriched_request_detector(messages, user_info)
+      # Добавляем дополнительный контекст если есть
+      if additional_context
+        contextual_content = "#{additional_context}\n\n#{message_content}"
+        message_content = contextual_content
+      end
+
+      # Добавляем RequestDetector tool если настроен admin_chat_id
+      if AppConfig.admin_chat_id
+        request_detector = create_enriched_request_detector(db_chat, user_info)
         chat.with_tool(request_detector)
       end
 
-      # Получаем последнее сообщение пользователя
-      last_message = messages.last
-      raise ArgumentError, 'No messages to send' unless last_message
-      raise ArgumentError, 'Last message is not from user' unless last_message[:role] == 'user'
+      # Сохраняем сообщение пользователя в БД
+      db_chat.messages.create!(role: :user, content: message_content)
 
-          # Добавляем контекст диалога в сообщение для AI, чтобы он мог использовать RequestDetector с нужными параметрами
-      if user_info && @config.admin_chat_id && messages.length > 1
-        context_messages = messages[0..-2]
-        if context_messages && context_messages.any?
-          conversation_context = context_messages.map { |msg| "#{msg[:role]}: #{msg[:content]}" }.join("\n\n")
-          # Добавляем контекст в начало сообщения, чтобы AI мог анализировать всю беседу
-          contextual_message = "Контекст диалога:\n#{conversation_context}\n\nТекущее сообщение пользователя: #{last_message[:content]}"
-          last_message = { role: 'user', content: contextual_message }
-        end
-      end
+      # Отправляем сообщение
+      response = chat.ask(message_content)
 
-      # Отправляем сообщение и получаем ответ
-      response = chat.ask(last_message[:content])
+      # Сохраняем ответ ассистента в БД
+      db_chat.messages.create!(
+        role: :assistant,
+        content: response.content,
+        input_tokens: response.input_tokens,
+        output_tokens: response.output_tokens
+      )
 
-      # Возвращаем текст ответа
+      Application.logger.info "Response received for user #{user_info[:id]}, tokens: #{response.input_tokens + response.output_tokens}"
       response.content
+
     rescue RubyLLM::ConfigurationError => e
-      @logger.error "RubyLLM configuration error: #{e.message}"
+      Application.logger.error "RubyLLM configuration error: #{e.message}"
       raise e
     rescue RubyLLM::ModelNotFoundError => e
-      @logger.error "Model not found error: #{e.message}"
+      Application.logger.error "Model not found error: #{e.message}"
       raise e
     rescue RubyLLM::Error => e
-      @logger.error "RubyLLM API error: #{e.message}"
+      Application.logger.error "RubyLLM API error: #{e.message}"
       raise e
     rescue StandardError => e
       retries += 1
       if retries <= MAX_RETRIES
-        @logger.warn "LLM client retry #{retries}/#{MAX_RETRIES}: #{e.message}"
-        sleep(1) # Wait before retrying
+        Application.logger.warn "LLM client retry #{retries}/#{MAX_RETRIES}: #{e.message}"
+        sleep(1)
         retry
       else
-        @logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
+        Application.logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
         raise e
       end
     end
+  end
+
+  # Старый метод для совместимости
+  def send_message(messages, user_info = nil)
+    return "No user info provided" unless user_info
+
+    # Получаем последнее сообщение
+    last_message = messages.is_a?(Array) ? messages.last : messages
+    return "No message content" unless last_message && last_message[:content]
+
+    send_message_to_user(user_info, last_message[:content])
   end
 
   private
 
   def build_combined_system_prompt
     # Заменяем плейсхолдер [COMPANY_INFO] на содержимое файла с информацией о компании
-    prompt_with_company = @config.system_prompt.gsub('[COMPANY_INFO]', @config.company_info)
+    prompt_with_company = AppConfig.system_prompt.gsub('[COMPANY_INFO]', AppConfig.company_info)
 
     # Добавляем прайс-лист
-    "#{prompt_with_company}\n\n---\n\n## ПРАЙС-ЛИСТ\n\n#{@config.formatted_price_list}"
+    "#{prompt_with_company}\n\n---\n\n## ПРАЙС-ЛИСТ\n\n#{AppConfig.formatted_price_list}"
   end
 
-  def create_enriched_request_detector(messages, user_info)
-    @logger.debug "Creating enriched RequestDetector for user #{user_info[:id]}"
+  def create_enriched_request_detector(chat, user_info)
+    Application.logger.debug "Creating enriched RequestDetector for user #{user_info[:id]}"
 
-    # Извлекаем информацию из диалога
-    dialog_analyzer = DialogAnalyzer.new(@logger)
-    cost_calculator = CostCalculator.new(@config.price_list_path, @logger)
+    # Извлекаем информацию из диалога через conversation_manager
+    messages_array = @conversation_manager.get_history(user_info[:id])
 
-    car_info = dialog_analyzer.extract_car_info(messages)
-    required_services = dialog_analyzer.extract_services(messages)
-    dialog_context = dialog_analyzer.extract_dialog_context(messages)
+    dialog_analyzer = DialogAnalyzer.new
+    cost_calculator = CostCalculator.new(AppConfig.price_list_path)
+
+    car_info = dialog_analyzer.extract_car_info(messages_array)
+    required_services = dialog_analyzer.extract_services(messages_array)
+    dialog_context = dialog_analyzer.extract_dialog_context(messages_array)
 
     # Рассчитываем стоимость если возможно
     cost_calculation = nil
     if car_info && car_info[:class] && required_services && required_services.any?
       cost_calculation = cost_calculator.calculate_cost(required_services, car_info[:class])
-      @logger.debug "Cost calculation completed: #{cost_calculation.inspect}" if cost_calculation
+      Application.logger.debug "Cost calculation completed: #{cost_calculation.inspect}" if cost_calculation
     end
 
     # Создаем и обогащаем RequestDetector
-    RequestDetector.new(@config, @logger).tap do |detector|
+    RequestDetector.new.tap do |detector|
       detector.enrich_with(
         car_info: car_info,
         required_services: required_services,
@@ -118,8 +155,8 @@ class LLMClient
       )
     end
   rescue StandardError => e
-    @logger.error "Error creating enriched RequestDetector: #{e.message}"
+    Application.logger.error "Error creating enriched RequestDetector: #{e.message}"
     # Возвращаем базовый RequestDetector в случае ошибки
-    RequestDetector.new(@config, @logger)
+    RequestDetector.new
   end
 end

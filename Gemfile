@@ -6,8 +6,14 @@ ruby '>= 3.2.0'
 
 gem 'anyway_config', '~> 2.6'
 gem 'bigdecimal', '~> 3.0'
-gem 'ruby_llm', '~> 1.0'
+gem 'ruby_llm', '~> 1.7'
 gem 'telegram-bot-ruby', '~> 0.20.0'
+gem 'activesupport', '~> 8.0'
+
+# Database dependencies for chat persistence
+gem 'sqlite3', '~> 2.0'
+gem 'activerecord', '~> 8.0'
+gem 'standalone_migrations', '~> 8.0'
 
 group :test do
   gem 'minitest', '~> 5.20'
@@ -27,6 +33,6 @@ end
 gem 'ostruct', '~> 0.6.3'
 gem 'webrick', '~> 1.9'
 
-gem 'rails', '~> 8.1'
-
 gem "csv", "~> 3.3"
+
+gem "semver2", "~> 3.4"
