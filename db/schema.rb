@@ -10,21 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 3) do
+ActiveRecord::Schema[8.0].define(version: 2024_10_25_000008) do
   create_table "chats", force: :cascade do |t|
-    t.string "model", null: false
-    t.string "provider"
     t.string "title"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "telegram_user_id"
     t.integer "telegram_chat_id"
-    t.string "telegram_username"
-    t.string "telegram_first_name"
-    t.string "telegram_last_name"
+    t.string "model_id"
+    t.index ["model_id"], name: "index_chats_on_model_id"
     t.index ["telegram_chat_id"], name: "index_chats_on_telegram_chat_id"
     t.index ["telegram_user_id"], name: "index_chats_on_telegram_user_id"
-    t.index ["telegram_username"], name: "index_chats_on_telegram_username"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -38,9 +34,32 @@ ActiveRecord::Schema[8.0].define(version: 3) do
     t.json "metadata"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "parent_tool_call_id"
     t.index ["chat_id"], name: "index_messages_on_chat_id"
     t.index ["model_id"], name: "index_messages_on_model_id"
+    t.index ["parent_tool_call_id"], name: "index_messages_on_parent_tool_call_id"
     t.index ["role"], name: "index_messages_on_role"
+  end
+
+  create_table "models", force: :cascade do |t|
+    t.string "model_id", null: false
+    t.string "provider", null: false
+    t.string "name"
+    t.text "description"
+    t.integer "context_window"
+    t.decimal "input_cost", precision: 10, scale: 8
+    t.decimal "output_cost", precision: 10, scale: 8
+    t.boolean "supports_functions", default: false
+    t.boolean "supports_vision", default: false
+    t.boolean "supports_streaming", default: true
+    t.json "capabilities"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model_id"], name: "index_models_on_model_id", unique: true
+    t.index ["provider", "model_id"], name: "index_models_on_provider_and_model_id"
+    t.index ["provider"], name: "index_models_on_provider"
+    t.index ["supports_functions"], name: "index_models_on_supports_functions"
+    t.index ["supports_vision"], name: "index_models_on_supports_vision"
   end
 
   create_table "telegram_users", primary_key: "telegram_id", force: :cascade do |t|
@@ -65,5 +84,6 @@ ActiveRecord::Schema[8.0].define(version: 3) do
   end
 
   add_foreign_key "messages", "chats"
+  add_foreign_key "messages", "tool_calls", column: "parent_tool_call_id"
   add_foreign_key "tool_calls", "messages"
 end

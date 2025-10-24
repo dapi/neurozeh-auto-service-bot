@@ -65,13 +65,10 @@ class DialogAnalyzer
     }
   }
 
-  def initialize
-    @logger = logger || Logger.new(IO::NULL)
-  end
-
+  
   # Основной метод извлечения информации об автомобиле
   def extract_car_info(conversation_history)
-    @logger.debug "Extracting car info from conversation"
+    Application.logger.debug "Extracting car info from conversation"
 
     car_info = {
       make_model: extract_make_model(conversation_history),
@@ -84,13 +81,13 @@ class DialogAnalyzer
     car_info[:class] = car_class[:class]
     car_info[:class_description] = car_class[:description]
 
-    @logger.debug "Car info extracted: #{car_info.inspect}"
+    Application.logger.debug "Car info extracted: #{car_info.inspect}"
     car_info
   end
 
   # Извлечение необходимых услуг из диалога
   def extract_services(conversation_history)
-    @logger.debug "Extracting services from conversation"
+    Application.logger.debug "Extracting services from conversation"
 
     services = []
     conversation_history ||= []
@@ -102,7 +99,7 @@ class DialogAnalyzer
     end
 
     services = services.uniq
-    @logger.debug "Services extracted: #{services.inspect}"
+    Application.logger.debug "Services extracted: #{services.inspect}"
     services
   end
 

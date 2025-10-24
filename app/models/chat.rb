@@ -3,6 +3,10 @@
 class Chat < ApplicationRecord
   acts_as_chat
 
+  # Ассоциации автоматически добавлены acts_as_chat:
+  # - has_many :messages
+  # - belongs_to :model (ссылается на модель AI через model_id)
+
   # Telegram ассоциации
   belongs_to :telegram_user,
              class_name: 'TelegramUser',
@@ -11,7 +15,6 @@ class Chat < ApplicationRecord
              primary_key: 'telegram_id'
 
   # Валидации
-  validates :model, presence: true
   validates :telegram_user_id, uniqueness: { scope: :telegram_chat_id }, allow_nil: true
 
   # Scopes
@@ -20,10 +23,7 @@ class Chat < ApplicationRecord
 
   # Методы для удобной работы
   def telegram_display_name
-    return telegram_user&.display_name if telegram_user
-
-    parts = [telegram_first_name, telegram_last_name].compact
-    parts.any? ? parts.join(' ') : "User ##{telegram_user_id}"
+    telegram_user&.display_name || "User ##{telegram_user_id}"
   end
 
   def self.find_or_create_by_telegram_user(user_info)
@@ -33,12 +33,7 @@ class Chat < ApplicationRecord
     find_by(telegram_user_id: user_id, telegram_chat_id: chat_id) ||
       create!(
         telegram_user_id: user_id,
-        telegram_chat_id: chat_id,
-        telegram_username: user_info[:username],
-        telegram_first_name: user_info[:first_name],
-        telegram_last_name: user_info[:last_name],
-        model: AppConfig.llm_model,
-        provider: AppConfig.llm_provider
+        telegram_chat_id: chat_id
       )
   end
 end

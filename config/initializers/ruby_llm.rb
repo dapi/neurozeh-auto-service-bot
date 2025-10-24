@@ -3,6 +3,8 @@
 require 'ruby_llm'
 
 RubyLLM.configure do |config|
+  config.use_new_acts_as = true
+
   # Используем OpenAI API ключ
   # Устанавливаем таймауты и retry настройки
   config.request_timeout = 120 # AppConfig.request_timeout

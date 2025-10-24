@@ -20,38 +20,18 @@ class LLMClient
     # Получаем или создаем чат для пользователя
     db_chat = @conversation_manager.get_or_create_chat(user_info)
 
-    # Устанавливаем модель если новая запись
-    if db_chat.new_record? || db_chat.model.blank?
-      db_chat.update!(
-        model: AppConfig.llm_model,
-        provider: AppConfig.llm_provider
-      )
-    end
-
     # Используем персистентный чат из базы данных
-    Application.logger.debug "Using persistent chat ##{db_chat.id} with provider: #{db_chat.provider}, model: #{db_chat.model}"
+    Application.logger.debug "Using persistent chat ##{db_chat.id}"
 
     retries = 0
     begin
-      Application.logger.info "LLMClient model: #{db_chat.model}, provider: #{db_chat.provider}"
+      Application.logger.info "LLMClient using model: #{AppConfig.llm_model}, provider: #{AppConfig.llm_provider}"
 
-      # Создаем объект RubyLLM чата вручную
-      chat = RubyLLM.chat(
-        model: db_chat.model,
-        provider: db_chat.provider.to_sym,
-        assume_model_exists: true
-      )
-
-      # Загружаем историю диалога в RubyLLM чат
-      db_chat.messages.order(created_at: :asc).each do |msg|
-        chat.add_message(role: msg.role.to_sym, content: msg.content)
-      end
+      # Устанавливаем модель динамически
+      chat = db_chat.with_model(AppConfig.llm_model, provider: AppConfig.llm_provider.to_sym)
 
       # Комбинируем системный промпт
       combined_system_prompt = build_combined_system_prompt
-
-      # Устанавливаем системные инструкции
-      chat.with_instructions(combined_system_prompt, replace: true)
 
       # Добавляем дополнительный контекст если есть
       if additional_context
@@ -59,25 +39,17 @@ class LLMClient
         message_content = contextual_content
       end
 
+      # Устанавливаем системные инструкции
+      chat.with_instructions(combined_system_prompt, replace: true)
+
       # Добавляем RequestDetector tool если настроен admin_chat_id
       if AppConfig.admin_chat_id
         request_detector = create_enriched_request_detector(db_chat, user_info)
         chat.with_tool(request_detector)
       end
 
-      # Сохраняем сообщение пользователя в БД
-      db_chat.messages.create!(role: :user, content: message_content)
-
-      # Отправляем сообщение
+      # Отправляем сообщение - acts_as_chat автоматически сохранит сообщения
       response = chat.ask(message_content)
-
-      # Сохраняем ответ ассистента в БД
-      db_chat.messages.create!(
-        role: :assistant,
-        content: response.content,
-        input_tokens: response.input_tokens,
-        output_tokens: response.output_tokens
-      )
 
       Application.logger.info "Response received for user #{user_info[:id]}, tokens: #{response.input_tokens + response.output_tokens}"
       response.content
@@ -95,10 +67,12 @@ class LLMClient
       retries += 1
       if retries <= MAX_RETRIES
         Application.logger.warn "LLM client retry #{retries}/#{MAX_RETRIES}: #{e.message}"
+        Application.logger.warn "Backtrace:\n#{e.backtrace.join("\n")}" if retries == MAX_RETRIES
         sleep(1)
         retry
       else
         Application.logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
+        Application.logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
         raise e
       end
     end

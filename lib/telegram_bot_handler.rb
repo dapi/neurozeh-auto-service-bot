@@ -246,6 +246,7 @@ class TelegramBotHandler
       )
     rescue StandardError => e
       Application.logger.error "Error processing message for user #{user_id}: #{e.message}"
+      Application.logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
       bot.api.send_message(
         chat_id: chat_id,
         text: 'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте позже.'

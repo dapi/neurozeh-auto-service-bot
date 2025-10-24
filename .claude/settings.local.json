@@ -59,7 +59,10 @@
       "Bash(pgrep:*)",
       "WebFetch(domain:rubyllm.com)",
       "Bash(mv:*)",
-      "Bash(rake:*)"
+      "Bash(rake:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_associations.rb:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

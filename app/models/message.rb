@@ -3,9 +3,12 @@
 class Message < ApplicationRecord
   acts_as_message
 
-  # Ассоциации
-  belongs_to :chat
-  has_many :tool_calls, dependent: :destroy
+  # Ассоциации автоматически добавлены acts_as_message:
+  # - belongs_to :chat
+  # - has_many :tool_calls
+  # - belongs_to :parent_tool_call (для связи с ToolCall)
+  # - has_many :tool_results (через tool_calls)
+  # - belongs_to :model
 
   # Валидации
   validates :role, presence: true, inclusion: { in: %w[user assistant system tool] }
