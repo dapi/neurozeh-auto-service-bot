@@ -12,7 +12,7 @@ class Message < ApplicationRecord
 
   # Валидации
   validates :role, presence: true, inclusion: { in: %w[user assistant system tool] }
-  validates :content, presence: true
+  #validates :content, presence: true
 
   # Scopes
   scope :by_role, ->(role) { where(role: role) }

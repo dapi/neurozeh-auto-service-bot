@@ -8,12 +8,12 @@ class ConversationManager
     chat = Chat.find_or_create_by_telegram_user(user_info)
 
     # Установить модель если новая запись
-    if chat.new_record? || chat.model.blank?
-      chat.update!(
-        model: AppConfig.llm_model,
-        provider: AppConfig.llm_provider
-      )
-    end
+    #if chat.new_record? || chat.model.blank?
+      #chat.update!(
+        #model: AppConfig.llm_model,
+        #provider: AppConfig.llm_provider
+      #)
+    #end
 
     chat
   end
