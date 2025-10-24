@@ -60,6 +60,10 @@ class TestTelegramBotHandler < Minitest::Test
 
     # Create test message
     message = Minitest::Mock.new
+    message.expect(:new_chat_members, nil)
+    message.expect(:group_chat_created, nil)
+    message.expect(:supergroup_chat_created, nil)
+    message.expect(:channel_chat_created, nil)
     message.expect(:from, OpenStruct.new(id: 123))
     message.expect(:text, '/start')
     message.expect(:chat, OpenStruct.new(id: 456))
@@ -74,6 +78,307 @@ class TestTelegramBotHandler < Minitest::Test
     bot.verify
     bot_api.verify
     @conversation_manager.verify
+    @logger.verify
+  end
+
+  def test_handle_new_chat_members_with_bot
+    # Mock bot API
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) do |args|
+      assert_includes args[:text], 'Я был добавлен в этот чат'
+      assert_equal 'Markdown', args[:parse_mode]
+      true
+    end
+
+    # Create mock objects
+    bot_member = OpenStruct.new(is_bot: true)
+    user_member = OpenStruct.new(is_bot: false)
+
+    added_by = OpenStruct.new(
+      id: 123456,
+      first_name: 'Иван',
+      last_name: 'Петров',
+      username: 'ivan_petrov',
+      language_code: 'ru'
+    )
+
+    chat = OpenStruct.new(
+      id: -1001234567890,
+      type: 'supergroup',
+      title: 'Автосервис',
+      username: 'autoservice_chat'
+    )
+
+    # Create test message with new_chat_members
+    message = Minitest::Mock.new
+    message.expect(:new_chat_members, [bot_member, user_member])
+    message.expect(:from, added_by)
+    message.expect(:chat, chat)
+
+    # Mock logger calls
+    @logger.expect(:info, nil, [/Bot added to chat.*Chat ID: -1001234567890.*Type: supergroup.*Title: "Автосервис"/])
+    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat info") }
+
+    @handler.send(:handle_new_chat_members, message, bot)
+
+    message.verify
+    bot.verify
+    bot_api.verify
+    @logger.verify
+  end
+
+  def test_handle_new_chat_members_without_bot
+    # Create mock objects (only regular users, no bot)
+    user1 = OpenStruct.new(is_bot: false)
+    user2 = OpenStruct.new(is_bot: false)
+
+    added_by = OpenStruct.new(
+      id: 123456,
+      first_name: 'Иван',
+      last_name: 'Петров'
+    )
+
+    chat = OpenStruct.new(
+      id: -1001234567890,
+      type: 'supergroup',
+      title: 'Автосервис'
+    )
+
+    # Create test message with new_chat_members (no bot)
+    message = Minitest::Mock.new
+    message.expect(:new_chat_members, [user1, user2])
+    message.expect(:from, added_by)
+    message.expect(:chat, chat)
+
+    # Should not log anything if bot is not among new members
+    @handler.send(:handle_new_chat_members, message, nil)
+
+    message.verify
+  end
+
+  def test_handle_chat_created
+    # Mock bot API
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) do |args|
+      assert_includes args[:text], 'Я был добавлен в этот чат'
+      assert_equal 'Markdown', args[:parse_mode]
+      true
+    end
+
+    # Create mock objects
+    creator = OpenStruct.new(
+      id: 987654,
+      first_name: 'Мария',
+      last_name: 'Иванова',
+      username: 'maria_iv'
+    )
+
+    chat = OpenStruct.new(
+      id: -123456789,
+      type: 'group',
+      title: 'Новый чат'
+    )
+
+    # Create test message for group chat creation
+    message = Minitest::Mock.new
+    message.expect(:from, creator)
+    message.expect(:chat, chat)
+
+    # Mock logger calls
+    @logger.expect(:info, nil, [/New chat created with bot.*Chat ID: -123456789.*Type: group/])
+    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat creation info") }
+
+    @handler.send(:handle_chat_created, message, bot)
+
+    message.verify
+    bot.verify
+    bot_api.verify
+    @logger.verify
+  end
+
+  def test_handle_chat_member_updated_bot_kicked
+    # Test handling bot being removed from chat
+    bot = Minitest::Mock.new
+
+    from_user = OpenStruct.new(id: 123456, first_name: 'Иван')
+    chat = OpenStruct.new(id: -1001234567890, title: 'Тест чат')
+
+    bot_user = OpenStruct.new(is_bot: true)
+    new_member = OpenStruct.new(user: bot_user, status: 'kicked')
+
+    chat_member_update = OpenStruct.new(
+      chat: chat,
+      from: from_user,
+      old_chat_member: OpenStruct.new(user: bot_user, status: 'member'),
+      new_chat_member: new_member
+    )
+
+    # Mock logger calls
+    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
+    @logger.expect(:debug, nil, [/Old status: member, New status: kicked/])
+    @logger.expect(:info, nil, [/Bot was removed from chat -1001234567890/])
+
+    # Mock conversation manager
+    @conversation_manager.expect(:clear_history, nil, [-1001234567890])
+
+    @handler.send(:handle_chat_member_updated, chat_member_update, bot)
+
+    @conversation_manager.verify
+    @logger.verify
+  end
+
+  def test_handle_chat_member_updated_bot_added
+    # Test handling bot being added to chat
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) do |args|
+      assert_equal(-1001234567890, args[:chat_id])
+      assert_includes args[:text], 'Я был добавлен в этот чат'
+      assert_equal 'Markdown', args[:parse_mode]
+      true
+    end
+
+    from_user = OpenStruct.new(
+      id: 123456,
+      first_name: 'Иван',
+      last_name: 'Петров'
+    )
+    chat = OpenStruct.new(
+      id: -1001234567890,
+      title: 'Тест чат',
+      type: 'supergroup'
+    )
+
+    bot_user = OpenStruct.new(is_bot: true)
+    new_member = OpenStruct.new(user: bot_user, status: 'member')
+
+    chat_member_update = OpenStruct.new(
+      chat: chat,
+      from: from_user,
+      old_chat_member: OpenStruct.new(user: bot_user, status: 'left'),
+      new_chat_member: new_member
+    )
+
+    # Mock logger calls
+    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
+    @logger.expect(:debug, nil, [/Old status: left, New status: member/])
+    @logger.expect(:info, nil, [/Bot was added to chat -1001234567890/])
+    @logger.expect(:info, nil, [/Bot added to chat/])
+    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat info") }
+
+    @handler.send(:handle_chat_member_updated, chat_member_update, bot)
+
+    bot.verify
+    bot_api.verify
+    @logger.verify
+  end
+
+  def test_handle_chat_member_updated_non_bot_user
+    # Test that non-bot user changes are ignored
+    bot = Minitest::Mock.new
+
+    from_user = OpenStruct.new(id: 123456, first_name: 'Иван')
+    chat = OpenStruct.new(id: -1001234567890)
+
+    regular_user = OpenStruct.new(is_bot: false)
+    new_member = OpenStruct.new(user: regular_user, status: 'member')
+
+    chat_member_update = OpenStruct.new(
+      chat: chat,
+      from: from_user,
+      old_chat_member: OpenStruct.new(user: regular_user, status: 'left'),
+      new_chat_member: new_member
+    )
+
+    # Only expect basic logging, no bot-specific actions
+    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
+    @logger.expect(:debug, nil, [/Old status: left, New status: member/])
+
+    @handler.send(:handle_chat_member_updated, chat_member_update, bot)
+
+    @logger.verify
+  end
+
+  def test_handle_chat_member_updated_error_handling
+    # Test error handling in chat member updates
+    bot = Minitest::Mock.new
+
+    chat_member_update = Minitest::Mock.new
+    chat_member_update.expect(:chat, nil) # This will cause an error
+
+    # Mock logger error call
+    @logger.expect(:error, nil, [/Error handling chat member update/])
+
+    @handler.send(:handle_chat_member_updated, chat_member_update, bot)
+
+    @logger.verify
+  end
+
+  def test_format_chat_info_with_all_fields
+    chat = OpenStruct.new(
+      id: -1001234567890,
+      type: 'supergroup',
+      title: 'Автосервис',
+      username: 'autoservice_chat'
+    )
+
+    added_by = OpenStruct.new(
+      id: 123456,
+      first_name: 'Иван',
+      last_name: 'Петров'
+    )
+
+    result = @handler.send(:format_chat_info, chat, added_by)
+
+    assert_includes result, 'Chat ID: -1001234567890'
+    assert_includes result, 'Type: supergroup'
+    assert_includes result, 'Title: "Автосервис"'
+    assert_includes result, 'Username: @autoservice_chat'
+    assert_includes result, 'Added by: 123456 (Иван Петров)'
+  end
+
+  def test_send_chat_welcome_message_success
+    # Mock bot API
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) do |args|
+      assert_equal 123, args[:chat_id]
+      assert_includes args[:text], 'Я был добавлен в этот чат'
+      assert_equal 'Markdown', args[:parse_mode]
+      true
+    end
+
+    @handler.send(:send_chat_welcome_message, 123, bot)
+
+    bot.verify
+    bot_api.verify
+  end
+
+  def test_send_chat_welcome_message_error_handling
+    # Mock bot API that raises an error
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) { raise StandardError, 'API Error' }
+
+    # Mock logger error call
+    @logger.expect(:error, nil, [/Failed to send welcome message to chat 123/])
+
+    @handler.send(:send_chat_welcome_message, 123, bot)
+
+    bot.verify
+    bot_api.verify
     @logger.verify
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'test_helper'
-require_relative '../lib/ruby_llm_client'
+require_relative '../lib/llm_client'
 
 class TestLLMClient < Minitest::Test
   def setup

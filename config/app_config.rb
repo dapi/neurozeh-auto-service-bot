@@ -28,6 +28,7 @@ class AppConfig < Anyway::Config
 
     # Telegram configuration
     telegram_bot_token: '',
+    admin_chat_id: nil,  # ID чата для отправки уведомлений о заявках
 
     # Rate limiter configuration
     rate_limit_requests: 10,
@@ -65,6 +66,7 @@ class AppConfig < Anyway::Config
     company_info: :string,
     formatted_price_list: :string,
     telegram_bot_token: :string,
+    admin_chat_id: :integer,
     log_level: :string,
     bot_mode: :string,
     webhook_url: :string,
@@ -205,7 +207,13 @@ class AppConfig < Anyway::Config
   class << self
     # Make it possible to access a singleton config instance
     # via class methods (i.e., without explicitly calling `instance`)
-    delegate_missing_to :instance
+    def method_missing(name, *args, &block)
+      instance.public_send(name, *args, &block)
+    end
+
+    def respond_to_missing?(name, include_private = false)
+      instance.respond_to?(name, include_private) || super
+    end
 
     private
 

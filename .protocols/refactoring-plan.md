@@ -2,7 +2,7 @@
 
 ## Текущая ситуация
 
-**RubyLLMClient** (`lib/ruby_llm_client.rb:13-21`):
+**RubyLLMClient** (`lib/llm_client.rb:13-21`):
 - Загружает системный промпт (`@system_prompt`)
 - Загружает информацию о компании (`@company_info`)
 - Загружает и форматирует прайс-лист (`@price_list`)
@@ -187,5 +187,5 @@ end
 ## Затрагиваемые файлы
 
 - `config/app_config.rb` - расширение функциональности
-- `lib/ruby_llm_client.rb` - упрощение и удаление логики загрузки
+- `lib/llm_client.rb` - упрощение и удаление логики загрузки
 - `lib/telegram_bot_handler.rb` - использование данных из конфигурации

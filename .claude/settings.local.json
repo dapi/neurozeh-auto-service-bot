@@ -48,7 +48,16 @@
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/**)",
       "Bash(./bot.rb:*)",
       "Bash(export:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Read(//tmp/**)",
+      "Bash(kill:*)",
+      "Bash(pkill:*)",
+      "Bash(awk:*)",
+      "Bash(xargs kill:*)",
+      "Bash(echo:*)",
+      "Read(//Users/danil/**)",
+      "Bash(pgrep:*)",
+      "WebFetch(domain:rubyllm.com)"
     ],
     "deny": [],
     "ask": []

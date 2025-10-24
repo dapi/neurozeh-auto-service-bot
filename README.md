@@ -1,6 +1,6 @@
-# Авто-Сервис Бот (auto-service-bot) - Telegram Bot для Записи на Авто-Услуги
+# Авто-Сервис Бот (auto-service-bot) - Telegram Bot AI-ассистент для Записи на Авто-Услуги
 
-Telegram бот для записи на услуги автосервиса с интеграцией Claude AI.
+Telegram бот для записи на услуги автосервиса.
 
 ## Описание проекта
 
@@ -50,6 +50,7 @@ Telegram бот для записи на услуги автосервиса с 
    Обязательные параметры:
    ```
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+   ADMIN_CHAT_ID=123456789  # ID административного чата для уведомлений о заявках
    ```
 
 4. **Запустить бота:**
@@ -468,6 +469,7 @@ cp .env.example .env
 
 ```
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+ADMIN_CHAT_ID=123456789
 SYSTEM_PROMPT_PATH=./system-prompt.md
 RATE_LIMIT_REQUESTS=10
 RATE_LIMIT_PERIOD=60
@@ -563,6 +565,7 @@ HTTP клиент для общения с Claude API:
 | `RATE_LIMIT_PERIOD` | Период лимита (в сек) | ❌ | `60` |
 | `MAX_HISTORY_SIZE` | Макс. размер истории | ❌ | `10` |
 | `LOG_LEVEL` | Уровень логирования | ❌ | `info` |
+| `ADMIN_CHAT_ID` | ID админского чата | ❌ | `123456789` |
 
 ### Переменные из gem ruby_llm (v1.8.2)
 
