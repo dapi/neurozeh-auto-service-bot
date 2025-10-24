@@ -3,13 +3,13 @@
 require 'ruby_llm'
 require 'logger'
 
-class RubyLLMClient
+class LLMClient
   MAX_RETRIES = 1
 
   def initialize(config, logger = Logger.new($stdout))
     @config = config
     @logger = logger
-    @logger.info 'RubyLLMClient initialized with system prompt and price list'
+    @logger.info 'LLMClient initialized with system prompt and price list'
   end
 
   def send_message(messages)
@@ -20,7 +20,7 @@ class RubyLLMClient
 
     retries = 0
     begin
-      @logger.info "RubyLLMClient model: #{@config.llm_model}, provider: #{@config.llm_provider}"
+      @logger.info "LLMClient model: #{@config.llm_model}, provider: #{@config.llm_provider}"
       # Выбираем чат: кастомный или стандартный
       chat = RubyLLM.chat model: @config.llm_model, provider: @config.llm_provider.to_sym, assume_model_exists: true
 

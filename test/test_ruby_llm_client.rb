@@ -3,7 +3,7 @@
 require 'test_helper'
 require_relative '../lib/ruby_llm_client'
 
-class TestRubyLLMClient < Minitest::Test
+class TestLLMClient < Minitest::Test
   def setup
     # Set required environment variables before creating config
     ENV['TELEGRAM_BOT_TOKEN'] = 'test_token'
@@ -28,7 +28,7 @@ class TestRubyLLMClient < Minitest::Test
   end
 
   def test_company_info_loading
-    RubyLLMClient.new(@config, @logger)
+    LLMClient.new(@config, @logger)
 
     # Проверяем, что информация о компании доступна через конфиг
     refute_nil @config.company_info
@@ -38,7 +38,7 @@ class TestRubyLLMClient < Minitest::Test
   end
 
   def test_system_prompt_with_company_info
-    RubyLLMClient.new(@config, @logger)
+    LLMClient.new(@config, @logger)
 
     # Проверяем, что системный промпт содержит информацию о компании
     refute_nil @config.system_prompt
@@ -47,7 +47,7 @@ class TestRubyLLMClient < Minitest::Test
   end
 
   def test_build_combined_system_prompt
-    client = RubyLLMClient.new(@config, @logger)
+    client = LLMClient.new(@config, @logger)
 
     # Получаем комбинированный промпт через приватный метод
     combined_prompt = client.send(:build_combined_system_prompt)
@@ -65,7 +65,7 @@ class TestRubyLLMClient < Minitest::Test
   end
 
   def test_company_info_content_structure
-    client = RubyLLMClient.new(@config, @logger)
+    client = LLMClient.new(@config, @logger)
 
     combined_prompt = client.send(:build_combined_system_prompt)
 
@@ -79,7 +79,7 @@ class TestRubyLLMClient < Minitest::Test
   end
 
   def test_combined_prompt_sections_order
-    client = RubyLLMClient.new(@config, @logger)
+    client = LLMClient.new(@config, @logger)
 
     combined_prompt = client.send(:build_combined_system_prompt)
 

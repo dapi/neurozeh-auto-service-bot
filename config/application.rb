@@ -46,7 +46,7 @@ class Application
   end
 
   def ai_client
-    @ai_client ||= RubyLLMClient.new(config, logger)
+    @ai_client ||= LLMClient.new(config, logger)
   end
 
   def conversation_manager
