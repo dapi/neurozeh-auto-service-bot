@@ -28,3 +28,5 @@ gem 'ostruct', '~> 0.6.3'
 gem 'webrick', '~> 1.9'
 
 gem 'rails', '~> 8.1'
+
+gem "csv", "~> 3.3"

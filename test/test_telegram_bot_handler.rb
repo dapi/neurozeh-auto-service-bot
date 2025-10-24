@@ -20,7 +20,7 @@ class TestTelegramBotHandler < Minitest::Test
     @ai_client = Minitest::Mock.new
     @rate_limiter = Minitest::Mock.new
     @conversation_manager = Minitest::Mock.new
-    @logger = Minitest::Mock.new
+    @logger = NullLogger.new
 
     @handler = TelegramBotHandler.new(
       @config,
@@ -68,17 +68,12 @@ class TestTelegramBotHandler < Minitest::Test
     message.expect(:text, '/start')
     message.expect(:chat, OpenStruct.new(id: 456))
 
-    # Mock logger
-    @logger.expect(:info, nil, [/Received message/])
-    @logger.expect(:info, nil, [%r{issued /start command}])
-
     @handler.send(:process_message, message, bot)
 
     message.verify
     bot.verify
     bot_api.verify
     @conversation_manager.verify
-    @logger.verify
   end
 
   def test_handle_new_chat_members_with_bot
@@ -118,16 +113,11 @@ class TestTelegramBotHandler < Minitest::Test
     message.expect(:from, added_by)
     message.expect(:chat, chat)
 
-    # Mock logger calls
-    @logger.expect(:info, nil, [/Bot added to chat.*Chat ID: -1001234567890.*Type: supergroup.*Title: "Автосервис"/])
-    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat info") }
-
     @handler.send(:handle_new_chat_members, message, bot)
 
     message.verify
     bot.verify
     bot_api.verify
-    @logger.verify
   end
 
   def test_handle_new_chat_members_without_bot
@@ -190,16 +180,11 @@ class TestTelegramBotHandler < Minitest::Test
     message.expect(:from, creator)
     message.expect(:chat, chat)
 
-    # Mock logger calls
-    @logger.expect(:info, nil, [/New chat created with bot.*Chat ID: -123456789.*Type: group/])
-    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat creation info") }
-
     @handler.send(:handle_chat_created, message, bot)
 
     message.verify
     bot.verify
     bot_api.verify
-    @logger.verify
   end
 
   def test_handle_chat_member_updated_bot_kicked
@@ -219,18 +204,12 @@ class TestTelegramBotHandler < Minitest::Test
       new_chat_member: new_member
     )
 
-    # Mock logger calls
-    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
-    @logger.expect(:debug, nil, [/Old status: member, New status: kicked/])
-    @logger.expect(:info, nil, [/Bot was removed from chat -1001234567890/])
-
     # Mock conversation manager
     @conversation_manager.expect(:clear_history, nil, [-1001234567890])
 
     @handler.send(:handle_chat_member_updated, chat_member_update, bot)
 
     @conversation_manager.verify
-    @logger.verify
   end
 
   def test_handle_chat_member_updated_bot_added
@@ -267,18 +246,10 @@ class TestTelegramBotHandler < Minitest::Test
       new_chat_member: new_member
     )
 
-    # Mock logger calls
-    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
-    @logger.expect(:debug, nil, [/Old status: left, New status: member/])
-    @logger.expect(:info, nil, [/Bot was added to chat -1001234567890/])
-    @logger.expect(:info, nil, [/Bot added to chat/])
-    @logger.expect(:debug, nil) { |msg| msg.include?("Detailed chat info") }
-
     @handler.send(:handle_chat_member_updated, chat_member_update, bot)
 
     bot.verify
     bot_api.verify
-    @logger.verify
   end
 
   def test_handle_chat_member_updated_non_bot_user
@@ -298,13 +269,7 @@ class TestTelegramBotHandler < Minitest::Test
       new_chat_member: new_member
     )
 
-    # Only expect basic logging, no bot-specific actions
-    @logger.expect(:info, nil, [/Chat member updated in chat -1001234567890/])
-    @logger.expect(:debug, nil, [/Old status: left, New status: member/])
-
     @handler.send(:handle_chat_member_updated, chat_member_update, bot)
-
-    @logger.verify
   end
 
   def test_handle_chat_member_updated_error_handling
@@ -314,12 +279,7 @@ class TestTelegramBotHandler < Minitest::Test
     chat_member_update = Minitest::Mock.new
     chat_member_update.expect(:chat, nil) # This will cause an error
 
-    # Mock logger error call
-    @logger.expect(:error, nil, [/Error handling chat member update/])
-
     @handler.send(:handle_chat_member_updated, chat_member_update, bot)
-
-    @logger.verify
   end
 
   def test_format_chat_info_with_all_fields
@@ -372,13 +332,9 @@ class TestTelegramBotHandler < Minitest::Test
     bot.expect(:api, bot_api)
     bot_api.expect(:send_message, nil) { raise StandardError, 'API Error' }
 
-    # Mock logger error call
-    @logger.expect(:error, nil, [/Failed to send welcome message to chat 123/])
-
     @handler.send(:send_chat_welcome_message, 123, bot)
 
     bot.verify
     bot_api.verify
-    @logger.verify
   end
 end

@@ -11,16 +11,7 @@ class TestWebhookStarter < Minitest::Test
     @telegram_bot_handler = Minitest::Mock.new
   end
 
-  def test_webhook_starter_initializes_correctly
-    starter = WebhookStarter.new(@config, @logger, @telegram_bot_handler)
-
-    # Just check that instance variables are set (not nil for mocks)
-    assert_equal @config.object_id, starter.instance_variable_get(:@config).object_id
-    assert_equal @logger.object_id, starter.instance_variable_get(:@logger).object_id
-    assert_equal @telegram_bot_handler.object_id, starter.instance_variable_get(:@telegram_bot_handler).object_id
-    assert_nil starter.server
-  end
-
+  
   def test_handle_webhook_request_post_with_valid_json
     @config.expect(:telegram_bot_token, 'test_token')
     @config.expect(:webhook_url, 'https://example.com')

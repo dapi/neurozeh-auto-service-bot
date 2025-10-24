@@ -22,7 +22,7 @@ class TelegramBotHandler
       # Тестируем соединение
       begin
         me = bot.api.get_me
-        @logger.info "SUCCESS: Connected to bot #{me['result']['first_name']} (@#{me['result']['username']})"
+        @logger.info "Connected to bot #{me['result']['first_name']} (@#{me['result']['username']})"
       rescue StandardError => e
         @logger.error "Failed to connect to Telegram API: #{e.class} - #{e.message}"
         raise e
@@ -31,8 +31,6 @@ class TelegramBotHandler
       @logger.info 'Starting polling loop...'
 
       bot.listen do |update|
-        @logger.info "Received update via bot.listen: #{update.class}"
-        @logger.debug "Update content: #{update.inspect}"
         process_update(update, bot)
       rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error "Telegram API error: #{e.class} - #{e.message}"
@@ -162,48 +160,28 @@ class TelegramBotHandler
   end
 
   def process_update(update, bot)
-    @logger.info "=== PROCESS UPDATE START ==="
-    @logger.info "Processing update: #{update.class}"
-    @logger.debug "Full update object: #{update.inspect}"
-
     # Handle different types of updates
     if update.respond_to?(:message) && update.message
-      @logger.info "Found message in update, delegating to process_message"
-      @logger.debug "Message object: #{update.message.inspect}"
       process_message(update.message, bot)
     elsif update.respond_to?(:chat_member) && update.chat_member
-      @logger.info "Found chat_member update"
       handle_chat_member_updated(update.chat_member, bot)
     elsif update.is_a?(Telegram::Bot::Types::Message)
       # If update is already a message object
-      @logger.info "Update is already a Message object, delegating to process_message"
       process_message(update, bot)
-    else
-      @logger.info "Received unsupported update type: #{update.class}"
-      @logger.debug "Update object: #{update.inspect}"
     end
-
-    @logger.info "=== PROCESS UPDATE END ==="
   end
 
   def process_message(message, bot)
-    @logger.info "=== PROCESS MESSAGE START ==="
-    @logger.info "Entering process_message with message: #{message.class}"
-    @logger.debug "Message object: #{message.inspect}"
-
     # Validate message object
     unless message.respond_to?(:from) && message.from.respond_to?(:id)
       @logger.error "Invalid message object: #{message.class}"
-      @logger.error "Message details: #{message.inspect}"
       return
     end
 
     user_id = message.from.id
-    @logger.info "Processing message for user #{user_id}"
 
     # Handle new chat members event
     if message.respond_to?(:new_chat_members) && message.new_chat_members.present?
-      @logger.info "Handle new_chat_member"
       handle_new_chat_members(message, bot)
       return
     end
@@ -212,22 +190,15 @@ class TelegramBotHandler
     if (message.respond_to?(:group_chat_created) && message.group_chat_created.present?) ||
         (message.respond_to?(:supergroup_chat_created) && message.supergroup_chat_created.present?) ||
         (message.respond_to?(:channel_chat_created) && message.channel_chat_created.present?)
-      @logger.info "Handle other chat events"
       handle_chat_created(message, bot)
       return
     end
 
     begin
       text = message.respond_to?(:text) ? message.text : nil
-      @logger.debug "Extracted text: #{text.inspect}"
-
       chat_id = message.chat.id
-      @logger.debug "Extracted chat_id: #{chat_id}"
-
-      @logger.info "Received message from user #{user_id}: #{text ? text[0..50] : 'no text'}..."
     rescue StandardError => e
       @logger.error "Error extracting message data: #{e.class} - #{e.message}"
-      @logger.error "Message object: #{message.inspect}"
       return
     end
 
@@ -246,26 +217,19 @@ class TelegramBotHandler
     end
 
     # Check rate limit
-    @logger.info "Checking rate limit for user #{user_id}"
     unless @rate_limiter.allow?(user_id)
       @logger.warn "Rate limit exceeded for user #{user_id}"
-      @rate_limiter.remaining_requests(user_id)
       bot.api.send_message(
         chat_id: chat_id,
         text: 'Вы отправляете слишком много сообщений. Пожалуйста, подождите немного.'
       )
       return
     end
-    @logger.info "Rate limit check passed for user #{user_id}"
 
     # Only process text messages
-    @logger.info "Checking text content: #{text.inspect}, empty: #{text&.strip&.empty?}"
     unless text && !text.strip.empty?
-      @logger.debug "Skipping non-text message from user #{user_id}"
-      @logger.debug "Text is nil: #{text.nil?}, text empty: #{text&.strip&.empty?}"
       return
     end
-    @logger.info "Text validation passed for user #{user_id}: #{text[0..50]}..."
 
     # Process message with Claude
     begin
@@ -283,16 +247,7 @@ class TelegramBotHandler
       }
 
       # Send to AI API with user info
-      @logger.info "=== CALLING LLM CLIENT ==="
-      @logger.info "History length: #{history.length}"
-      @logger.info "User info: #{user_info.inspect}"
-      @logger.debug "History content: #{history.inspect}"
-
       response = @ai_client.send_message(history, user_info)
-
-      @logger.info "=== LLM CLIENT RESPONSE RECEIVED ==="
-      @logger.info "Response length: #{response.length}"
-      @logger.debug "Response content: #{response[0..200]}..."
 
       # Add assistant response to history
       @conversation_manager.add_message(user_id, 'assistant', response)
@@ -303,8 +258,6 @@ class TelegramBotHandler
         text: response,
         parse_mode: 'Markdown'
       )
-
-      @logger.info "Successfully processed message for user #{user_id}"
     rescue StandardError => e
       @logger.error "Error processing message for user #{user_id}: #{e.message}"
       bot.api.send_message(

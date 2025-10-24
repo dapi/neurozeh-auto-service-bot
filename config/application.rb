@@ -9,15 +9,8 @@ class Application
     end
 
     logger.info 'Auto Service Bot starting...'
-    logger.info 'Configuration loaded:'
-    logger.info "  - Model: #{config.llm_model}"
-    logger.info "  - OpenAI API Base URL: #{config.openai_api_base || 'default'}"
-    logger.info "  - Provider: #{config.llm_provider}"
-    logger.info "  - Model: #{config.llm_model}"
-    logger.info "  - Rate Limit: #{config.rate_limit_requests} requests per #{config.rate_limit_period} seconds"
-    logger.info "  - Max History Size: #{config.max_history_size}"
-    telegram_bot_handler # INitialize
-    logger.info 'Telegram Bot Handler Initialized'
+    telegram_bot_handler # Initialize
+    logger.info 'Bot initialized successfully'
   end
 
   def config

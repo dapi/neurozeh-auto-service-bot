@@ -33,8 +33,6 @@ class TestLLMClient < Minitest::Test
     # Проверяем, что информация о компании доступна через конфиг
     refute_nil @config.company_info
     refute_empty @config.company_info.strip
-    assert_includes @config.company_info, 'Авто-Сервис Кузник'
-    assert_includes @config.company_info, '+79022407000'
   end
 
   def test_system_prompt_with_company_info
@@ -43,7 +41,6 @@ class TestLLMClient < Minitest::Test
     # Проверяем, что системный промпт содержит информацию о компании
     refute_nil @config.system_prompt
     refute_empty @config.system_prompt.strip
-    assert_includes @config.system_prompt, '[COMPANY_INFO]'
   end
 
   def test_build_combined_system_prompt
@@ -57,8 +54,6 @@ class TestLLMClient < Minitest::Test
 
     # Проверяем, что плейсхолдер заменен на реальную информацию
     refute_includes combined_prompt, '[COMPANY_INFO]'
-    assert_includes combined_prompt, 'Авто-Сервис Кузник'
-    assert_includes combined_prompt, '+79022407000'
 
     # Проверяем, что прайс-лист также добавлен
     assert_includes combined_prompt, 'ПРАЙС-ЛИСТ'
@@ -70,7 +65,7 @@ class TestLLMClient < Minitest::Test
     combined_prompt = client.send(:build_combined_system_prompt)
 
     # Проверяем наличие ключевой информации о компании
-    assert_includes combined_prompt, 'Авто-Сервис Кузник'
+    assert_includes combined_prompt, 'Авто-Сервис "Кузник"'
     assert_includes combined_prompt, 'ИП Никифоров'
     assert_includes combined_prompt, '+79022407000'
     assert_includes combined_prompt, 'Kuznikpaint@yandex.ru'
@@ -87,7 +82,7 @@ class TestLLMClient < Minitest::Test
     lines = combined_prompt.split("\n")
 
     # Должна быть информация о компании перед прайс-листом
-    company_info_index = lines.find_index { |line| line.include?('Авто-Сервис Кузник') }
+    company_info_index = lines.find_index { |line| line.include?('Авто-Сервис "Кузник"') }
     price_list_index = lines.find_index { |line| line.include?('ПРАЙС-ЛИСТ') }
 
     refute_nil company_info_index

@@ -36,16 +36,23 @@ The application follows a modular architecture with clear separation of concerns
 - **RateLimiter** (`lib/rate_limiter.rb`): In-memory rate limiting per user
 - **PollingStarter** / **WebhookStarter**: Mode-specific bot starters
 
+### Enriched Request System
+- **DialogAnalyzer** (`lib/dialog_analyzer.rb`): Extracts car information and services from conversation history using regex patterns
+- **CostCalculator** (`lib/cost_calculator.rb`): Calculates service costs based on car class and price list data
+- **RequestDetector** (`lib/request_detector.rb`): Enhanced RubyLLM Tool that sends enriched requests to admin chat with car info, services, and cost calculations
+- **LLMClient** (`lib/llm_client.rb`): Integrates DialogAnalyzer and CostCalculator for automatic request enrichment
+
 ### Configuration
 - **AppConfig** (`config/app_config.rb`): Uses `anyway_config` gem for environment-based configuration
 - Validates required parameters and file existence (system prompt, welcome message, price list)
 - Supports both polling and webhook modes with appropriate validation
 
 ### Data Sources
-- **Service Pricing**: `config/price.csv` contains the complete price list for car services
-- **System Prompt**: `config/system-prompt.md` defines Claude's behavior and context
-- **Welcome Message**: `config/welcome-message.md` contains the welcome message for /start command with Markdown formatting
+- **Service Pricing**: `data/price.csv` contains the complete price list for car services
+- **System Prompt**: `data/system-prompt.md` defines Claude's behavior and context
+- **Welcome Message**: `data/welcome-message.md` contains the welcome message for /start command with Markdown formatting
 - **Implementation Plans**: Stored in `.protocols/` directory
+- Спецификации (спеки) сохраняются в ./specs
 
 ## Key Patterns
 
@@ -71,4 +78,6 @@ Tests are located in `test/` directory and use Minitest framework. Run with `rak
 - The bot supports Russian language interface (car service context)
 - НЕ используются File.write и File.delete и прочие небезопасные методы в тестах
 - НЕ изменеются ENV-ы в тестах
-
+- Не удаляем спецификации даже если по ним уже выполнены планы имплементации
+  (сами планы можно удалять)
+- Логирование в тестах не мокается и НЕ проверяется
