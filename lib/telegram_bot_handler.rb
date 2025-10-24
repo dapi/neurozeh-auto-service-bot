@@ -4,9 +4,9 @@ require 'telegram/bot'
 require 'logger'
 
 class TelegramBotHandler
-  def initialize(config, claude_client, rate_limiter, conversation_manager, logger = Logger.new($stdout))
+  def initialize(config, ai_client, rate_limiter, conversation_manager, logger = Logger.new($stdout))
     @config = config
-    @claude_client = claude_client
+    @ai_client = ai_client
     @rate_limiter = rate_limiter
     @conversation_manager = conversation_manager
     @logger = logger
@@ -102,8 +102,8 @@ class TelegramBotHandler
       # Get conversation history
       history = @conversation_manager.get_history(user_id)
 
-      # Send to Claude API
-      response = @claude_client.send_message(history)
+      # Send to AI API
+      response = @ai_client.send_message(history)
 
       # Add assistant response to history
       @conversation_manager.add_message(user_id, 'assistant', response)

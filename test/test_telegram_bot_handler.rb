@@ -13,14 +13,14 @@ class TestTelegramBotHandler < Minitest::Test
 
     @config = AppConfig.new
 
-    @claude_client = Minitest::Mock.new
+    @ai_client = Minitest::Mock.new
     @rate_limiter = Minitest::Mock.new
     @conversation_manager = Minitest::Mock.new
     @logger = Minitest::Mock.new
 
     @handler = TelegramBotHandler.new(
       @config,
-      @claude_client,
+      @ai_client,
       @rate_limiter,
       @conversation_manager,
       @logger

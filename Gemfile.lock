@@ -3,8 +3,6 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    anthropic (1.12.0)
-      connection_pool
     anyway_config (2.7.2)
       ruby-next-core (~> 1.0)
     ast (2.4.3)
@@ -12,10 +10,10 @@ GEM
       descendants_tracker (~> 0.0.4)
       ice_nine (~> 0.11.0)
       thread_safe (~> 0.3, >= 0.3.1)
+    base64 (0.3.0)
     bigdecimal (3.3.1)
     coercible (1.0.0)
       descendants_tracker (~> 0.0.1)
-    connection_pool (2.5.4)
     crack (1.0.1)
       bigdecimal
       rexml
@@ -29,6 +27,7 @@ GEM
       thor (>= 0.20, < 2)
     dry-inflector (1.2.0)
     erb (5.1.1)
+    event_stream_parser (1.0.0)
     faraday (2.14.0)
       faraday-net_http (>= 2.0, < 3.5)
       json
@@ -37,6 +36,8 @@ GEM
       multipart-post (~> 2.0)
     faraday-net_http (3.4.1)
       net-http (>= 0.5.0)
+    faraday-retry (2.3.2)
+      faraday (~> 2.0)
     hashdiff (1.2.1)
     ice_nine (0.11.2)
     io-console (0.8.1)
@@ -48,6 +49,7 @@ GEM
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
+    marcel (1.1.0)
     minitest (5.26.0)
     multipart-post (2.4.1)
     net-http (0.6.0)
@@ -103,6 +105,15 @@ GEM
       rubocop (>= 1.72.1)
     ruby-next-core (1.1.2)
     ruby-progressbar (1.13.0)
+    ruby_llm (1.8.2)
+      base64
+      event_stream_parser (~> 1)
+      faraday (>= 1.10.0)
+      faraday-multipart (>= 1)
+      faraday-net_http (>= 1)
+      faraday-retry (>= 1)
+      marcel (~> 1.0)
+      zeitwerk (~> 2)
     stringio (3.1.7)
     telegram-bot-ruby (0.20.0)
       dry-inflector
@@ -125,13 +136,13 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.1)
+    zeitwerk (2.7.3)
 
 PLATFORMS
   arm64-darwin-24
   ruby
 
 DEPENDENCIES
-  anthropic (~> 1.12)
   anyway_config (~> 2.6)
   bigdecimal (~> 3.0)
   debug (~> 1.11)
@@ -143,6 +154,7 @@ DEPENDENCIES
   rubocop-minitest (~> 0.36)
   rubocop-performance (~> 1.23)
   rubocop-rake (~> 0.6)
+  ruby_llm (~> 1.0)
   telegram-bot-ruby (~> 0.20.0)
   webmock (~> 3.18)
   webrick (~> 1.9)

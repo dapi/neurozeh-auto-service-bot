@@ -28,12 +28,19 @@ logger.info 'RateLimiter initialized'
 conversation_manager = ConversationManager.new(config.max_history_size)
 logger.info 'ConversationManager initialized'
 
-claude_client = ClaudeClient.new(config, logger)
-logger.info 'ClaudeClient initialized'
+# Choose AI client based on configuration
+if config.respond_to?(:use_ruby_llm) && config.use_ruby_llm
+  ai_client = RubyLLMClient.new(config, logger)
+  logger.info 'RubyLLMClient initialized'
+else
+  # Default to RubyLLMClient for new implementation
+  ai_client = RubyLLMClient.new(config, logger)
+  logger.info 'RubyLLMClient initialized (default)'
+end
 
 telegram_bot_handler = TelegramBotHandler.new(
   config,
-  claude_client,
+  ai_client,
   rate_limiter,
   conversation_manager,
   logger

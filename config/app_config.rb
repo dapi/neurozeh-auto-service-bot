@@ -6,14 +6,18 @@ class AppConfig < Anyway::Config
   config_name :auto_service_bot
   env_prefix ''
 
-  # Claude API configuration
+  # Claude API configuration (legacy for backward compatibility)
   attr_config(
-    anthropic_auth_token: '',
-    anthropic_model: 'claude-3-5-sonnet-20241022',
-    anthropic_base_url: 'https://api.anthropic.com',
+    # RubyLLM configuration
+    llm_provider: 'openai',
+    llm_model: 'glm-4.5-air', # Используем z.ai
+    openai_api_base: nil, # Опциональный OpenAI-совместимый API endpoint (например, https://api.z.ai/v1)
+
+    # File paths
     system_prompt_path: './config/system-prompt.md',
     welcome_message_path: './config/welcome-message.md',
-    price_list_path: './data/кузник.csv',
+    price_list_path: './config/price.csv',
+    company_info_path: './config/company-info.md',
 
     # Telegram configuration
     telegram_bot_token: '',
@@ -27,7 +31,6 @@ class AppConfig < Anyway::Config
 
     # Logging
     log_level: 'info',
-    debug_api_requests: false,
 
     # Bot mode configuration (polling or webhook)
     bot_mode: 'polling',
@@ -39,13 +42,38 @@ class AppConfig < Anyway::Config
     webhook_path: '/telegram/webhook'
   )
 
+  # Type coercions to ensure proper data types from environment variables
+  coerce_types(
+    # Strings
+    llm_provider: :string,
+    llm_model: :string,
+    openai_api_base: :string,
+    system_prompt_path: :string,
+    welcome_message_path: :string,
+    price_list_path: :string,
+    company_info_path: :string,
+    telegram_bot_token: :string,
+    log_level: :string,
+    bot_mode: :string,
+    webhook_url: :string,
+    webhook_host: :string,
+    webhook_path: :string,
+
+    # Integers
+    rate_limit_requests: :integer,
+    rate_limit_period: :integer,
+    max_history_size: :integer,
+    webhook_port: :integer
+  )
+
   # Declare required parameters using anyway_config's required method
-  required :anthropic_auth_token, :telegram_bot_token
+  required :telegram_bot_token, :llm_provider, :llm_model
 
   # Валидация с использованием on_load callbacks вместо manual checks в initialize
   on_load :validate_system_prompt_file
   on_load :validate_welcome_message_file
   on_load :validate_price_list_file
+  on_load :validate_company_info_file
   on_load :validate_bot_mode
   on_load :validate_webhook_requirements
   on_load :validate_numeric_parameters
@@ -73,6 +101,12 @@ class AppConfig < Anyway::Config
     return if path.end_with?('.csv')
 
     raise ArgumentError, "Price list file must be a CSV file: #{path}"
+  end
+
+  def validate_company_info_file
+    path = company_info_path
+    raise ArgumentError, "Company info file not found: #{path}" unless File.exist?(path)
+    raise ArgumentError, "Company info file not readable: #{path}" unless File.readable?(path)
   end
 
   def validate_bot_mode

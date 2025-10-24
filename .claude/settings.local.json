@@ -38,7 +38,14 @@
       "mcp__context8__resolve-library-id",
       "mcp__context8__get-library-docs",
       "Bash(docker-compose config:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(ANTHROPIC_MODEL=claude-3-5-sonnet-20241022 bundle exec ruby:*)",
+      "Bash(cp:*)",
+      "Bash(gem specification:*)",
+      "Bash(gem contents:*)",
+      "Read(//Users/danil/.rbenv/versions/3.3.10/lib/ruby/gems/3.3.0/gems/ruby_llm-1.8.2/**)",
+      "Bash(find:*)",
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/**)"
     ],
     "deny": [],
     "ask": []
