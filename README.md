@@ -1,11 +1,31 @@
-# Авто-Сервис Бот - Telegram Bot для Записи на Авто-Услуги
+# Авто-Сервис Бот (auto-service-bot) - Telegram Bot для Записи на Авто-Услуги
 
 Telegram бот для записи на услуги автосервиса с интеграцией Claude AI.
 
 ## Описание проекта
 
-Бот использует Claude AI от Anthropic для обработки запросов пользователей и ведения диалогов о услугах автосервиса. 
+Бот использует Claude AI от Anthropic для обработки запросов пользователей и ведения диалогов о услугах автосервиса.
 Бот отслеживает истории диалогов каждого пользователя и имеет защиту от спама через Rate Limiter.
+
+## 🚀 Quick Start
+
+**Хотите быстро начать?** Выберите ваш путь:
+
+- 🎯 **[Я новичок](#-Запуск-через-docker-Рекомендуется-для-продакшена)** - Docker Compose (просто и надежно)
+- 🛠️ **[Я разработчик](#️-Упрощенная-разработка-с-dip-Рекомендуется)** - Dip (максимальная продуктивность)
+- ⚡ **[Я хочу локально](#-Запуск-без-docker-классическая-разработка)** - Без Docker (быстрый старт)
+
+## 🚀 Способы запуска бота
+
+| Способ | Для кого | Преимущества | Недостатки |
+|--------|----------|---------------|------------|
+| **Docker + Dip** | Разработчики | 💪 Максимальная продуктивность, 🔧 Изолированное окружение, 🔄 Быстрый workflow | 🐳 Требуется Docker |
+| **Docker Compose** | Продакшен, DevOps | 🚀 Готовый к продакшену, 🔒 Безопасность, 📦 Простота развертывания | 🐢 Медленнее для разработки |
+| **Локальная разработка** | Новички, быстрый старт | ⚡ Быстрый старт, 🎓 Легко понять, 💻 Минимум зависимостей | ⚠️ Проблемы с зависимостями, 🔄 Сложный setup |
+
+**Рекомендация:** Используйте **Dip** для разработки, **Docker Compose** для продакшена.
+
+---
 
 ## 🚀 Запуск через Docker (Рекомендуется для продакшена)
 
@@ -13,8 +33,8 @@ Telegram бот для записи на услуги автосервиса с 
 
 1. **Клонировать репозиторий:**
    ```bash
-   git clone https://github.com/yourusername/neurozeh-auto-service-bot.git
-   cd neurozeh-auto-service-bot
+   git clone https://github.com/yourusername/auto-service-bot.git
+   cd auto-service-bot
    ```
 
 2. **Создать файл конфигурации:**
@@ -40,7 +60,7 @@ Telegram бот для записи на услуги автосервиса с 
 
 5. **Проверить статус:**
    ```bash
-   docker-compose logs -f neurozeh-bot
+   docker-compose logs -f auto-service-bot
    ```
 
 ### Подробная инструкция по запуску
@@ -88,8 +108,8 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 ```bash
 # Клонируем репозиторий
-git clone https://github.com/yourusername/neurozeh-auto-service-bot.git
-cd neurozeh-auto-service-bot
+git clone https://github.com/yourusername/auto-service-bot.git
+cd auto-service-bot
 
 # Создаем конфигурационный файл
 cp .env.example .env
@@ -105,7 +125,7 @@ nano .env
 docker-compose up -d
 
 # Просмотр логов
-docker-compose logs -f neurozeh-bot
+docker-compose logs -f auto-service-bot
 
 # Остановка бота
 docker-compose down
@@ -144,10 +164,10 @@ docker-compose down
 docker-compose ps
 
 # Проверка здоровья
-docker-compose exec neurozeh-bot pgrep -f "ruby bot.rb"
+docker-compose exec auto-service-bot pgrep -f "ruby bot.rb"
 
 # Просмотр использования ресурсов
-docker stats neurozeh-auto-service-bot
+docker stats auto-service-bot
 ```
 
 **Обновление до новой версии:**
@@ -169,13 +189,13 @@ docker image prune -f
 
 ```bash
 # Сборка образа
-docker build -t neurozeh-auto-service-bot .
+docker build -t auto-service-bot .
 
 # Запуск
 docker run -d \
-  --name neurozeh-bot \
+  --name auto-service-bot \
   --env-file .env \
-  neurozeh-auto-service-bot
+  auto-service-bot
 ```
 
 ### Автоматические обновления
@@ -201,8 +221,8 @@ docker-compose pull && docker-compose up -d
 | `docker-compose down` | Остановить и удалить контейнеры |
 | `docker-compose logs -f` | Смотреть логи в реальном времени |
 | `docker-compose restart` | Перезапустить контейнер |
-| `docker-compose exec neurozeh-bot bash` | Войти в контейнер |
-| `docker stats neurozeh-auto-service-bot` | Мониторинг ресурсов |
+| `docker-compose exec auto-service-bot bash` | Войти в контейнер |
+| `docker stats auto-service-bot` | Мониторинг ресурсов |
 
 ## 🛠️ Упрощенная разработка с Dip (Рекомендуется)
 
@@ -240,12 +260,12 @@ bundle add dip --group development
 
 | Команда | Описание | Аналог Docker |
 |---------|----------|---------------|
-| `dip bash` | Открыть shell в контейнере | `docker-compose exec neurozeh-bot bash` |
-| `dip bot` | Запустить бота | `docker-compose up neurozeh-bot` |
-| `dip test` | Запустить тесты | `docker-compose exec neurozeh-bot bundle exec rake test` |
-| `dip rubocop` | Проверить код стилем | `docker-compose exec neurozeh-bot bundle exec rubocop` |
-| `dip logs` | Смотреть логи бота | `docker-compose logs -f neurozeh-bot` |
-| `dip restart` | Перезапустить бота | `docker-compose restart neurozeh-bot` |
+| `dip bash` | Открыть shell в контейнере | `docker-compose exec auto-service-bot bash` |
+| `dip bot` | Запустить бота | `docker-compose up auto-service-bot` |
+| `dip test` | Запустить тесты | `docker-compose exec auto-service-bot bundle exec rake test` |
+| `dip rubocop` | Проверить код стилем | `docker-compose exec auto-service-bot bundle exec rubocop` |
+| `dip logs` | Смотреть логи бота | `docker-compose logs -f auto-service-bot` |
+| `dip restart` | Перезапустить бота | `docker-compose restart auto-service-bot` |
 | `dip down` | Остановить все сервисы | `docker-compose down` |
 
 ### Продвинутые возможности Dip
@@ -337,8 +357,8 @@ dip down && dip up
 
 ```bash
 # 1. Клонирование и настройка
-git clone https://github.com/yourusername/neurozeh-auto-service-bot.git
-cd neurozeh-auto-service-bot
+git clone https://github.com/yourusername/auto-service-bot.git
+cd auto-service-bot
 dip setup
 
 # 2. Запуск окружения
@@ -362,7 +382,63 @@ dip down
 
 **Dip делает разработку с Docker такой же удобной, как локальная разработка!**
 
+### 📖 Подробное руководство для разработчиков
+
+Для полного погружения в процесс разработки с Dip и Docker, прочитайте **[DEVELOPMENT.md](DEVELOPMENT.md)** - там вы найдете:
+
+- 🚀 Подробную настройку окружения
+- 🛠️ Ежедневные команды и workflow
+- 🐛 Troubleshooting частых проблем
+- 🔄 CI/CD интеграцию
+- 📊 Мониторинг производительности
+- 🎯 Советы по продуктивности
+
+---
+
 # Запуск без Docker (классическая разработка)
+
+Для локальной разработки без Docker:
+
+### 1. Клонировать репозиторий и установить зависимости
+
+```bash
+git clone https://github.com/yourusername/auto-service-bot.git
+cd auto-service-bot
+bundle install
+```
+
+### 2. Настроить переменные окружения
+
+```bash
+cp .env.example .env
+nano .env
+```
+
+Обязательные параметры:
+```
+ANTHROPIC_AUTH_TOKEN=your_anthropic_api_key
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+```
+
+### 3. Запустить бота
+
+```bash
+ruby bot.rb
+```
+
+### 4. Запуск тестов
+
+```bash
+rake test
+```
+
+### 5. Проверка стиля кода
+
+```bash
+bundle exec rubocop
+```
+
+---
 
 Бот разрабатывается по методике Plan&Act через Claude Code AI.
 
@@ -378,7 +454,7 @@ dip down
 
 ```bash
 git clone <repository>
-cd kuznik-bot
+cd auto-service-bot
 bundle install
 ```
 

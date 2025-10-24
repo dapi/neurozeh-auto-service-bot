@@ -21,6 +21,7 @@ group :development do
   gem 'rubocop-minitest', '~> 0.36'
   gem 'rubocop-performance', '~> 1.23'
   gem 'rubocop-rake', '~> 0.6'
+  gem 'dip', '~> 8.0'
 end
 
 gem 'ostruct', '~> 0.6.3'

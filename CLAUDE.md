@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Telegram bot for a car service (Kuznik) that uses Claude AI for conversation handling. The bot can operate in both polling and webhook modes and includes rate limiting, conversation management, and service pricing functionality.
+This is a Telegram bot for a car service that uses Claude AI for conversation handling. The bot can operate in both polling and webhook modes and includes rate limiting, conversation management, and service pricing functionality.
 
 ## Common Development Commands
 

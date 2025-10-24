@@ -1,0 +1,167 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bibendi/dip/refs/heads/master/schema.json
+
+version: '8.0'
+
+# Environment variables for Dip commands
+environment:
+  COMPOSE_EXT: development
+  RAILS_ENV: development
+  RACK_ENV: development
+  LOG_LEVEL: debug
+
+# Docker Compose configuration
+compose:
+  files:
+    - docker-compose.yml
+    - docker-compose.override.yml
+  project_name: auto-service-bot
+
+# Main interaction commands
+interaction:
+  # Shell and basic commands
+  bash:
+    description: Open Bash shell in bot container
+    service: auto-service-bot
+    command: bash
+    compose:
+      run_options: [no-deps]
+
+  sh:
+    description: Open sh shell in bot container
+    service: auto-service-bot
+    command: sh
+    compose:
+      run_options: [no-deps]
+
+  # Ruby/Bundler commands
+  bundle:
+    description: Run Bundler commands
+    service: auto-service-bot
+    command: bundle
+
+  ruby:
+    description: Run Ruby commands
+    service: auto-service-bot
+    command: ruby
+
+  rake:
+    description: Run Rake tasks
+    service: auto-service-bot
+    command: bundle exec rake
+
+  # Testing commands
+  test:
+    description: Run all tests
+    service: auto-service-bot
+    environment:
+      RAILS_ENV: test
+    command: bundle exec rake test
+
+  minitest:
+    description: Run specific test file
+    service: auto-service-bot
+    environment:
+      RAILS_ENV: test
+    command: bundle exec ruby -Itest
+
+  rspec:
+    description: Run RSpec tests (if using RSpec)
+    service: auto-service-bot
+    environment:
+      RAILS_ENV: test
+    command: bundle exec rspec
+
+  # Code quality
+  rubocop:
+    description: Run RuboCop linting
+    service: auto-service-bot
+    command: bundle exec rubocop
+
+  rubocop-autocorrect:
+    description: Run RuboCop with auto-correction
+    service: auto-service-bot
+    command: bundle exec rubocop -a
+
+  # Bot commands
+  bot:
+    description: Run the Telegram bot
+    service: auto-service-bot
+    command: ruby bot.rb
+    compose:
+      run_options: [service-ports]
+
+  bot-console:
+    description: Start bot in debug mode with console access
+    service: auto-service-bot
+    command: irb -r ./config/boot
+    compose:
+      run_options: [no-deps]
+
+  # Docker Compose shortcuts
+  up:
+    description: Start all services
+    compose:
+      method: up
+      run_options: [detach]
+
+  down:
+    description: Stop all services
+    command: down
+
+  restart:
+    description: Restart bot service
+    command: restart auto-service-bot
+
+  logs:
+    description: View bot logs
+    command: logs -f auto-service-bot
+
+  # Environment management
+  setup:
+    description: Setup development environment
+    command: |
+      bash -c "
+        echo 'Setting up development environment...'
+        bundle install
+        cp .env.example .env 2>/dev/null || true
+        echo 'Please edit .env file with your tokens'
+      "
+
+  # Database/Data commands (if needed)
+  console:
+    description: Open IRB console with app loaded
+    service: auto-service-bot
+    command: irb -r ./config/boot
+
+  # Infrastructure commands
+  infra-up:
+    description: Start infrastructure services only
+    compose:
+      method: up
+      run_options: [detach]
+      services: [redis]  # Add other infra services as needed
+
+  infra-down:
+    description: Stop infrastructure services
+    compose:
+      method: down
+
+  # Development utilities
+  clean:
+    description: Clean up Docker containers and images
+    command: |
+      bash -c "
+        docker-compose down --volumes --remove-orphans
+        docker system prune -f
+      "
+
+  # Health check
+  health:
+    description: Check container health
+    command: ps
+
+# Provisioning commands for initial setup
+provision:
+  - dip down
+  - dip setup
+  - dip up

@@ -1,0 +1,34 @@
+# Override file for development environment
+# This file extends docker-compose.yml for local development
+
+services:
+  auto-service-bot:
+    # Development-specific overrides
+    environment:
+      - LOG_LEVEL=debug
+      - RACK_ENV=development
+      - RAILS_ENV=development
+
+    # Mount source code for development
+    volumes:
+      - .:/app
+      - bundle_cache:/bundle
+
+    # Override user for development (match host user)
+    user: ${UID:-1000}:${GID:-1000}
+
+    # Keep container running for development
+    command: tail -f /dev/null
+
+  # Optional: Redis for development (if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: auto-service-bot-redis-dev
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data_dev:/data
+
+volumes:
+  bundle_cache:
+    driver: local

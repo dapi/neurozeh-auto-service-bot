@@ -33,7 +33,12 @@
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/lib/telegram/**)",
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/telegram-bot-ruby-0.20.0/**)",
       "Bash(gem list:*)",
-      "Bash(gem which:*)"
+      "Bash(gem which:*)",
+      "mcp__context7__get-library-docs",
+      "mcp__context8__resolve-library-id",
+      "mcp__context8__get-library-docs",
+      "Bash(docker-compose config:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

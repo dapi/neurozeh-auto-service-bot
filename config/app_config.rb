@@ -3,7 +3,7 @@
 require 'anyway_config'
 
 class AppConfig < Anyway::Config
-  config_name :kuznik_bot
+  config_name :auto_service_bot
   env_prefix ''
 
   # Claude API configuration

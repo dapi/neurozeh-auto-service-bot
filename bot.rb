@@ -11,7 +11,7 @@ logger.level = Logger.const_get(log_level)
 # Load configuration
 config = AppConfig.new
 
-logger.info 'Kuznik Bot starting...'
+logger.info 'Auto Service Bot starting...'
 logger.info 'Configuration loaded:'
 logger.info "  - Model: #{config.anthropic_model}"
 logger.info "  - API Base URL: #{config.anthropic_base_url}"

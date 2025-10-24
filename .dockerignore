@@ -1,0 +1,83 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+.docs/
+
+# Test files
+test/
+spec/
+features/
+*.test.rb
+*_test.rb
+*_spec.rb
+
+# Development files
+.github/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+log/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Cache
+.cache/
+.bundle/
+vendor/bundle/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ruby specific
+*.rbc
+.yardoc
+.yardoc/
+doc/
+.rdoc
+.ruby-gemset
+.ruby-version
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Docker files (not needed in image)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Local development
+.local/
+local_config/
