@@ -560,8 +560,6 @@ HTTP клиент для общения с Claude API:
 
 | Переменная | Описание | Обязательная | По умолчанию |
 |---|---|---|---|
-| `ANTHROPIC_BASE_URL` | URL Anthropic API | ❌ | `https://api.z.ai/api/anthropic` |
-| `ANTHROPIC_MODEL` | Модель Claude | ❌ | `glm-4.5-air` |
 | `OPENAI_API_BASE` | OpenAI-совместимый API endpoint (например, для z.ai) | ❌ | автоопределение |
 | `SYSTEM_PROMPT_PATH` | Путь к системному промпту | ❌ | `./system-prompt.md` |
 | `TELEGRAM_BOT_TOKEN` | Token Telegram бота | ✅ | - |
@@ -582,18 +580,6 @@ HTTP клиент для общения с Claude API:
 - `PERPLEXITY_API_KEY` - API ключ для Perplexity
 - `OPENROUTER_API_KEY` - API ключ для OpenRouter
 - `MISTRAL_API_KEY` - API ключ для Mistral AI
-
-#### Переменные для Google Cloud Vertex AI
-
-- `GOOGLE_CLOUD_LOCATION` - Локация Google Cloud
-- `GOOGLE_CLOUD_PROJECT` - ID проекта Google Cloud
-
-#### Переменные для AWS Bedrock
-
-- `AWS_ACCESS_KEY_ID` - AWS Access Key ID
-- `AWS_SECRET_ACCESS_KEY` - AWS Secret Access Key
-- `AWS_REGION` - AWS регион
-- `AWS_SESSION_TOKEN` - AWS Session Token (опционально)
 
 #### Переменные для отладки и логирования ruby_llm
 

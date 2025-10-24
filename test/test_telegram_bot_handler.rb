@@ -10,6 +10,10 @@ class TestTelegramBotHandler < Minitest::Test
     ENV['TELEGRAM_BOT_TOKEN'] = 'test_bot_token'
     ENV['SYSTEM_PROMPT_PATH'] = './config/system-prompt.md'
     ENV['WELCOME_MESSAGE_PATH'] = './config/welcome-message.md'
+    ENV['OPENAI_API_KEY'] = 'test_openai_api_key_12345'
+    ENV['LLM_PROVIDER'] = 'anthropic'
+    ENV['LLM_MODEL'] = 'claude-3-5-sonnet-20241022'
+    ENV['PRICE_LIST_PATH'] = './config/price.csv'
 
     @config = AppConfig.new
 
@@ -33,6 +37,10 @@ class TestTelegramBotHandler < Minitest::Test
     ENV.delete('TELEGRAM_BOT_TOKEN')
     ENV.delete('SYSTEM_PROMPT_PATH')
     ENV.delete('WELCOME_MESSAGE_PATH')
+    ENV.delete('OPENAI_API_KEY')
+    ENV.delete('LLM_PROVIDER')
+    ENV.delete('LLM_MODEL')
+    ENV.delete('PRICE_LIST_PATH')
   end
 
   def test_read_welcome_message_success

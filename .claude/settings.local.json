@@ -45,7 +45,9 @@
       "Bash(gem contents:*)",
       "Read(//Users/danil/.rbenv/versions/3.3.10/lib/ruby/gems/3.3.0/gems/ruby_llm-1.8.2/**)",
       "Bash(find:*)",
-      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/**)"
+      "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/**)",
+      "Bash(./bot.rb:*)",
+      "Bash(export:*)"
     ],
     "deny": [],
     "ask": []

@@ -6,18 +6,19 @@ class AppConfig < Anyway::Config
   config_name :auto_service_bot
   env_prefix ''
 
+
   # Claude API configuration (legacy for backward compatibility)
   attr_config(
     # RubyLLM configuration
-    llm_provider: 'openai',
-    llm_model: 'glm-4.5-air', # Используем z.ai
+    llm_provider: '',
+    llm_model: '',
     openai_api_base: nil, # Опциональный OpenAI-совместимый API endpoint (например, https://api.z.ai/v1)
 
     # File paths
-    system_prompt_path: './config/system-prompt.md',
-    welcome_message_path: './config/welcome-message.md',
-    price_list_path: './config/price.csv',
-    company_info_path: './config/company-info.md',
+    system_prompt_path: './data/system-prompt.md',
+    welcome_message_path: './data/welcome-message.md',
+    price_list_path: './data/price.csv',
+    company_info_path: './data/company-info.md',
 
     # Telegram configuration
     telegram_bot_token: '',
@@ -133,5 +134,18 @@ class AppConfig < Anyway::Config
     return if max_history_size.is_a?(Integer) && max_history_size.positive?
 
     raise ArgumentError, 'MAX_HISTORY_SIZE must be a positive integer'
+  end
+
+  class << self
+    # Make it possible to access a singleton config instance
+    # via class methods (i.e., without explicitly calling `instance`)
+    delegate_missing_to :instance
+
+    private
+
+    # Returns a singleton config instance
+    def instance
+      @instance ||= new
+    end
   end
 end

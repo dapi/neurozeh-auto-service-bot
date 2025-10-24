@@ -16,13 +16,9 @@ class RubyLLMClient
     # Загружаем и форматируем прайс-лист (anyway_config проверил существование файла)
     @price_list = load_and_format_price_list
 
-    # Настраиваем RubyLLM
-    configure_ruby_llm
-
     # Инициализируем чат
-    @chat = RubyLLM.chat(model: @config.ruby_llm_model || @config.anthropic_model)
 
-    @logger.info 'RubyLLMClient initialized with ruby_llm gem, system prompt and price list'
+    @logger.info 'RubyLLMClient initialized with system prompt and price list'
   end
 
   def send_message(messages)
@@ -33,8 +29,9 @@ class RubyLLMClient
 
     retries = 0
     begin
+      @logger.info "RubyLLMClient model: #{@config.llm_model}, provider: #{@config.llm_provider}"
       # Выбираем чат: кастомный или стандартный
-      chat = get_chat_for_request
+      chat = RubyLLM.chat model: @config.llm_model, provider: @config.llm_provider.to_sym, assume_model_exists: true
 
       # Устанавливаем системные инструкции
       chat.with_instructions(combined_system_prompt, replace: true)
@@ -70,101 +67,12 @@ class RubyLLMClient
         @logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
         @logger.error "Final error class: #{e.class}"
         @logger.error "Final error backtrace: #{e.backtrace&.first(10)&.join("\n")}"
-        @logger.error "API configuration - Model: #{@config.ruby_llm_model || @config.anthropic_model}"
-        @logger.error "Token present: #{@config.anthropic_auth_token && !@config.anthropic_auth_token.empty? ? 'YES' : 'NO'}"
         raise e
       end
     end
   end
 
   private
-
-  def get_chat_for_request
-    # Если у нас есть кастомный контекст, используем его
-    return get_custom_chat if @custom_context
-
-    # Иначе используем стандартный чат
-    @chat
-  end
-
-  def get_custom_chat
-    # Если мы определили, что нужно использовать OpenAI формат
-    if @use_openai_format
-      @custom_context.chat(model: @config.ruby_llm_model || @config.anthropic_model, provider: :openai)
-    else
-      # Используем Anthropic формат с кастомным контекстом
-      @custom_context.chat(model: @config.ruby_llm_model || @config.anthropic_model, provider: :anthropic)
-    end
-  end
-
-  def configure_ruby_llm
-    RubyLLM.configure do |config|
-      # Используем существующий токен anthropic как токен для Anthropic провайдера в ruby_llm
-      config.anthropic_api_key = @config.anthropic_auth_token
-
-      # Устанавливаем таймауты и retry настройки
-      config.request_timeout = 120
-      config.max_retries = MAX_RETRIES
-    end
-
-    # Для кастомного API URL используем отдельный контекст
-    return unless @config.anthropic_base_url && @config.anthropic_base_url != 'https://api.anthropic.com'
-
-    @logger.info "Using custom base URL: #{@config.anthropic_base_url}"
-    configure_custom_endpoint
-  end
-
-  def configure_custom_endpoint
-    # Создаем кастомный контекст для работы с нестандартным endpoint
-    @custom_context = RubyLLM.context do |config|
-      config.anthropic_api_key = @config.anthropic_auth_token
-      config.request_timeout = 120
-      config.max_retries = MAX_RETRIES
-
-      # Для кастомных endpoints может потребоваться специальная конфигурация
-      # В ruby_llm это можно сделать через переопределение HTTP клиента
-      if @config.anthropic_base_url.include?('api.z.ai')
-        # Специальная обработка для api.z.ai
-        configure_z_ai_endpoint(config)
-      end
-    end
-  end
-
-  def configure_z_ai_endpoint(config)
-    # Для api.z.ai используем OpenAI-совCompatible формат, если доступен
-    # Иначе используем стандартный Anthropic-формат с переопределением URL
-
-    # Сначала проверяем, задан ли явный openai_api_base в конфиге
-    if @config.openai_api_base && !@config.openai_api_base.empty?
-      @logger.info "Using explicit OpenAI-compatible endpoint from config: #{@config.openai_api_base}"
-      config.openai_api_key = @config.anthropic_auth_token
-      config.openai_api_base = @config.openai_api_base
-      @use_openai_format = true
-      return
-    end
-
-    # Если явный endpoint не указан, пытаемся автоматически определить
-    # Проверим, есть ли OpenAI-совместимый endpoint
-    z_ai_openai_url = @config.anthropic_base_url.gsub('/api/anthropic', '/v1')
-
-    begin
-      # Простая проверка доступности endpoint
-      require 'net/http'
-      require 'uri'
-
-      uri = URI(z_ai_openai_url)
-      response = Net::HTTP.get_response(uri)
-
-      if response.code == '200'
-        @logger.info "Using auto-detected OpenAI-compatible endpoint: #{z_ai_openai_url}"
-        config.openai_api_key = @config.anthropic_auth_token
-        config.openai_api_base = z_ai_openai_url
-        @use_openai_format = true
-      end
-    rescue StandardError => e
-      @logger.warn "OpenAI-compatible endpoint not available, using Anthropic format: #{e.message}"
-    end
-  end
 
   def load_system_prompt
     # anyway_config уже проверил существование файла, но добавляем дополнительную защиту

@@ -1,62 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative 'config/boot'
-
-# Initialize logger
-log_level = ENV['LOG_LEVEL']&.upcase || 'INFO'
-logger = Logger.new($stdout)
-logger.level = Logger.const_get(log_level)
-
-# Load configuration
-config = AppConfig.new
-
-logger.info 'Auto Service Bot starting...'
-logger.info 'Configuration loaded:'
-logger.info "  - Model: #{config.anthropic_model}"
-logger.info "  - API Base URL: #{config.anthropic_base_url}"
-logger.info "  - Rate Limit: #{config.rate_limit_requests} requests per #{config.rate_limit_period} seconds"
-logger.info "  - Max History Size: #{config.max_history_size}"
-
-# Initialize components
-rate_limiter = RateLimiter.new(
-  config.rate_limit_requests,
-  config.rate_limit_period
-)
-logger.info 'RateLimiter initialized'
-
-conversation_manager = ConversationManager.new(config.max_history_size)
-logger.info 'ConversationManager initialized'
-
-# Choose AI client based on configuration
-if config.respond_to?(:use_ruby_llm) && config.use_ruby_llm
-  ai_client = RubyLLMClient.new(config, logger)
-  logger.info 'RubyLLMClient initialized'
-else
-  # Default to RubyLLMClient for new implementation
-  ai_client = RubyLLMClient.new(config, logger)
-  logger.info 'RubyLLMClient initialized (default)'
-end
-
-telegram_bot_handler = TelegramBotHandler.new(
-  config,
-  ai_client,
-  rate_limiter,
-  conversation_manager,
-  logger
-)
-logger.info 'TelegramBotHandler initialized'
+require_relative 'config/environment'
 
 # Launch bot with appropriate mode
-launcher = BotLauncher.new(config, logger, telegram_bot_handler)
-logger.info "BotLauncher initialized for mode: #{config.bot_mode}"
-
-# Handle signals
-trap('INT') do
-  logger.info 'Received SIGINT, shutting down...'
-  exit(0)
-end
-
-# Start the bot
-logger.info 'Starting bot...'
+launcher = BotLauncher.new(Application.config, Application.logger, Application.telegram_bot_handler)
+Application.logger.info "BotLauncher initialized for mode: #{Application.config.bot_mode}"
+Application.logger.info 'Starting bot...'
 launcher.start

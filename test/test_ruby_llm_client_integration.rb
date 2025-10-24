@@ -16,7 +16,11 @@ class TestRubyLLMClientIntegration < Minitest::Test
       system_prompt_path: @system_prompt_path,
       price_list_path: @price_list_path,
       ruby_llm_model: nil,
-      debug_api_requests: false
+      debug_api_requests: false,
+      llm_provider: 'anthropic',
+      llm_model: 'claude-3-5-sonnet-20241022',
+      openai_api_key: 'test_openai_api_key_12345',
+      anthropic_api_key: 'test_anthropic_api_key_12345'
     )
 
     @logger = NullLogger.new
@@ -44,7 +48,11 @@ class TestRubyLLMClientIntegration < Minitest::Test
       system_prompt_path: @system_prompt_path,
       price_list_path: @price_list_path,
       ruby_llm_model: nil,
-      debug_api_requests: false
+      debug_api_requests: false,
+      llm_provider: 'anthropic',
+      llm_model: 'claude-3-5-sonnet-20241022',
+      openai_api_key: 'test_openai_api_key_12345',
+      anthropic_api_key: 'test_anthropic_api_key_12345'
     )
 
     client = RubyLLMClient.new(config, @logger)
@@ -71,7 +79,11 @@ class TestRubyLLMClientIntegration < Minitest::Test
       system_prompt_path: @system_prompt_path,
       price_list_path: @price_list_path,
       ruby_llm_model: 'claude-3-5-sonnet-20241022',
-      debug_api_requests: false
+      debug_api_requests: false,
+      llm_provider: 'anthropic',
+      llm_model: 'claude-3-5-sonnet-20241022',
+      openai_api_key: 'test_openai_api_key_12345',
+      anthropic_api_key: 'test_anthropic_api_key_12345'
     )
 
     client = RubyLLMClient.new(config, @logger)
