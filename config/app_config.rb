@@ -6,7 +6,6 @@ class AppConfig < Anyway::Config
   config_name :auto_service_bot
   env_prefix ''
 
-
   # Claude API configuration (legacy for backward compatibility)
   attr_config(
     # RubyLLM configuration

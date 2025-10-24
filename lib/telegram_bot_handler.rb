@@ -14,7 +14,7 @@ class TelegramBotHandler
 
   def handle_polling
     @logger.info "Starting Telegram bot with token: #{@config.telegram_bot_token[0..10]}..."
-    
+
     # Используем встроенный метод Telegram::Bot::Client.run для правильного polling
     Telegram::Bot::Client.run(@config.telegram_bot_token, logger: @logger) do |bot|
       @logger.info 'Telegram bot client initialized successfully'
@@ -31,7 +31,6 @@ class TelegramBotHandler
       @logger.info 'Starting polling loop...'
 
       bot.listen do |message|
-        
         process_message(message, bot)
       rescue Telegram::Bot::Exceptions::ResponseError => e
         @logger.error "Telegram API error: #{e.class} - #{e.message}"

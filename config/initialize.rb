@@ -1,4 +1,3 @@
-
 # Load components
 require_relative '../lib/rate_limiter'
 require_relative '../lib/conversation_manager'
@@ -9,8 +8,8 @@ require_relative '../lib/polling_starter'
 require_relative '../lib/webhook_starter'
 
 # Load application code
-#$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
-#$LOAD_PATH.unshift File.expand_path('../config', __dir__)
+# $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
+# $LOAD_PATH.unshift File.expand_path('../config', __dir__)
 
 RubyLLM.configure do |config|
   # Используем OpenAI API ключ

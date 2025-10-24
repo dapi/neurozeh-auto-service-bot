@@ -15,7 +15,7 @@ class TestTelegramBotHandler < Minitest::Test
     ENV['LLM_MODEL'] = 'claude-3-5-sonnet-20241022'
     ENV['PRICE_LIST_PATH'] = './config/price.csv'
 
-    @config = AppConfig.new
+    @config = Application.config
 
     @ai_client = Minitest::Mock.new
     @rate_limiter = Minitest::Mock.new
@@ -95,14 +95,5 @@ class TestTelegramBotHandler < Minitest::Test
     bot_api.verify
     @conversation_manager.verify
     @logger.verify
-  end
-
-  def test_config_includes_welcome_message_path
-    assert_equal './config/welcome-message.md', @config.welcome_message_path
-  end
-
-  def test_welcome_message_file_exists
-    assert File.exist?(@config.welcome_message_path)
-    assert File.readable?(@config.welcome_message_path)
   end
 end

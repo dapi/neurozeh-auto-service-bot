@@ -49,7 +49,6 @@ Telegram бот для записи на услуги автосервиса с 
 
    Обязательные параметры:
    ```
-   ANTHROPIC_AUTH_TOKEN=your_anthropic_api_key
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
    ```
 
@@ -416,7 +415,6 @@ nano .env
 
 Обязательные параметры:
 ```
-ANTHROPIC_AUTH_TOKEN=your_anthropic_api_key
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 ```
 
@@ -469,10 +467,7 @@ cp .env.example .env
 Отредактируй `.env`:
 
 ```
-ANTHROPIC_AUTH_TOKEN=your_anthropic_api_key
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-ANTHROPIC_BASE_URL=https://api.z.ai/api/anthropic
-ANTHROPIC_MODEL=glm-4.5-air
 SYSTEM_PROMPT_PATH=./system-prompt.md
 RATE_LIMIT_REQUESTS=10
 RATE_LIMIT_PERIOD=60
@@ -602,7 +597,6 @@ ruby bot.rb
 
 Или в `.env` файле:
 ```
-ANTHROPIC_AUTH_TOKEN=your_z_ai_api_key
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 OPENAI_API_BASE=https://api.z.ai/api/paas/v4
 LLM_PROVIDER=anthropic

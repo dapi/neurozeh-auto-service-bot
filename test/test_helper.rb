@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require File.expand_path('../config/application', __dir__)
+require File.expand_path('../config/environment', __dir__)
 require 'minitest/autorun'
 require 'minitest/mock'
 require 'webmock'

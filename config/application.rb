@@ -16,6 +16,8 @@ class Application
     logger.info "  - Model: #{config.llm_model}"
     logger.info "  - Rate Limit: #{config.rate_limit_requests} requests per #{config.rate_limit_period} seconds"
     logger.info "  - Max History Size: #{config.max_history_size}"
+    telegram_bot_handler # INitialize
+    logger.info 'Telegram Bot Handler Initialized'
   end
 
   def config
