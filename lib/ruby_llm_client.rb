@@ -9,23 +9,14 @@ class RubyLLMClient
   def initialize(config, logger = Logger.new($stdout))
     @config = config
     @logger = logger
-
-    # anyway_config уже валидировал системный промпт, но загружаем его
-    @system_prompt = load_system_prompt
-
-    # Загружаем и форматируем прайс-лист (anyway_config проверил существование файла)
-    @price_list = load_and_format_price_list
-
-    # Инициализируем чат
-
     @logger.info 'RubyLLMClient initialized with system prompt and price list'
   end
 
   def send_message(messages)
     @logger.info "Sending message to RubyLLM with #{messages.length} messages"
 
-    # Комбинируем системный промпт с отформатированным прайс-листом
-    combined_system_prompt = "#{@system_prompt}\n\n---\n\n## ПРАЙС-ЛИСТ\n\n#{@price_list}"
+    # Комбинируем системный промпт с информацией о компании и прайс-листом
+    combined_system_prompt = build_combined_system_prompt
 
     retries = 0
     begin
@@ -74,64 +65,11 @@ class RubyLLMClient
 
   private
 
-  def load_system_prompt
-    # anyway_config уже проверил существование файла, но добавляем дополнительную защиту
-    path = @config.system_prompt_path
-    content = File.read(path, encoding: 'UTF-8')
+  def build_combined_system_prompt
+    # Заменяем плейсхолдер [COMPANY_INFO] на содержимое файла с информацией о компании
+    prompt_with_company = @config.system_prompt.gsub('[COMPANY_INFO]', @config.company_info)
 
-    if content.strip.empty?
-      @logger.error "System prompt file is empty: #{path}"
-      raise "System prompt file is empty: #{path}"
-    end
-
-    content
-  rescue StandardError => e
-    @logger.error "Failed to load system prompt: #{e.message}"
-    raise e
-  end
-
-  def load_and_format_price_list
-    price_list_path = @config.price_list_path
-
-    # anyway_config уже проверил существование и читаемость файла
-    content = File.read(price_list_path, encoding: 'UTF-8')
-
-    if content.strip.empty?
-      @logger.error "Price list file is empty: #{price_list_path}"
-      return '❌ Прайс-лист пуст. Пожалуйста, обратитесь позже.'
-    end
-
-    format_price_list_for_claude(content)
-  rescue StandardError => e
-    @logger.error "Failed to load price list: #{e.message}"
-    '❌ Прайс-лист временно недоступен. Пожалуйста, обратитесь позже.'
-  end
-
-  def format_price_list_for_claude(csv_content)
-    # Убираем лишние пустые строки и форматируем для лучшего понимания
-    lines = csv_content.split("\n").reject(&:empty?)
-
-    formatted = "📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ АВТОСЕРВИСА 'КУЗНИК'\n\n"
-
-    lines.each do |line|
-      next if line.strip.empty?
-
-      # Добавляем эмодзи для визуального выделения категорий и заголовков
-      formatted += if line.match?(/^[A-ZА-ЯЁ]+/i) || line.include?('Класс') || line.include?('класс')
-                     "📋 #{line}\n"
-                   else
-                     "#{line}\n"
-                   end
-    end
-
-    # Добавляем важное примечание
-    formatted += "\n#{'─' * 50}\n"
-    formatted += "⚠️ ВАЖНОЕ ПРИМЕЧАНИЕ:\n"
-    formatted += "• Все цены указаны ЗА ЭЛЕМЕНТ без учета дополнительных работ\n"
-    formatted += "• Дополнительные работы оплачиваются отдельно по этому прайс-листу\n"
-    formatted += "• Окончательная стоимость определяется после диагностики\n"
-    formatted += "#{'─' * 50}\n"
-
-    formatted
+    # Добавляем прайс-лист
+    "#{prompt_with_company}\n\n---\n\n## ПРАЙС-ЛИСТ\n\n#{@config.formatted_price_list}"
   end
 end

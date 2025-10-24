@@ -19,6 +19,13 @@ class AppConfig < Anyway::Config
     price_list_path: './data/price.csv',
     company_info_path: './data/company-info.md',
 
+    # Text content loaded from files
+    system_prompt: nil,
+    welcome_message: nil,
+    price_list: nil,
+    company_info: nil,
+    formatted_price_list: nil,
+
     # Telegram configuration
     telegram_bot_token: '',
 
@@ -52,6 +59,11 @@ class AppConfig < Anyway::Config
     welcome_message_path: :string,
     price_list_path: :string,
     company_info_path: :string,
+    system_prompt: :string,
+    welcome_message: :string,
+    price_list: :string,
+    company_info: :string,
+    formatted_price_list: :string,
     telegram_bot_token: :string,
     log_level: :string,
     bot_mode: :string,
@@ -77,6 +89,7 @@ class AppConfig < Anyway::Config
   on_load :validate_bot_mode
   on_load :validate_webhook_requirements
   on_load :validate_numeric_parameters
+  on_load :load_text_content
 
   private
 
@@ -133,6 +146,68 @@ class AppConfig < Anyway::Config
     return if max_history_size.is_a?(Integer) && max_history_size.positive?
 
     raise ArgumentError, 'MAX_HISTORY_SIZE must be a positive integer'
+  end
+
+  def load_text_file(path, description)
+    raise ArgumentError, "#{description} file not found: #{path}" unless File.exist?(path)
+
+    content = File.read(path, encoding: 'UTF-8')
+    raise ArgumentError, "#{description} file is empty: #{path}" if content.strip.empty?
+
+    content
+  end
+
+  def load_system_prompt
+    load_text_file(system_prompt_path, 'System prompt')
+  end
+
+  def load_company_info
+    load_text_file(company_info_path, 'Company info')
+  end
+
+  def load_welcome_message
+    load_text_file(welcome_message_path, 'Welcome message')
+  end
+
+  def load_price_list
+    load_text_file(price_list_path, 'Price list')
+  end
+
+  def format_price_list(content)
+    # Убираем лишние пустые строки и форматируем для лучшего понимания
+    lines = content.split("\n").reject(&:empty?)
+
+    formatted = "📋 АКТУАЛЬНЫЙ ПРАЙС-ЛИСТ АВТОСЕРВИСА 'КУЗНИК'\n\n"
+
+    lines.each do |line|
+      next if line.strip.empty?
+
+      # Добавляем эмодзи для визуального выделения категорий и заголовков
+      formatted += if line.match?(/^[A-ZА-ЯЁ]+/i) || line.include?('Класс') || line.include?('класс')
+                     "📋 #{line}\n"
+                   else
+                     "#{line}\n"
+                   end
+    end
+
+    # Добавляем важное примечание
+    formatted += "\n#{'─' * 50}\n"
+    formatted += "⚠️ ВАЖНОЕ ПРИМЕЧАНИЕ:\n"
+    formatted += "• Все цены указаны ЗА ЭЛЕМЕНТ без учета дополнительных работ\n"
+    formatted += "• Дополнительные работы оплачиваются отдельно по этому прайс-листу\n"
+    formatted += "• Окончательная стоимость определяется после диагностики\n"
+    formatted += "#{'─' * 50}\n"
+
+    formatted
+  end
+
+  def load_text_content
+    self.system_prompt = load_system_prompt
+    self.company_info = load_company_info
+    self.welcome_message = load_welcome_message
+    raw_price_list = load_price_list
+    self.price_list = raw_price_list
+    self.formatted_price_list = format_price_list(raw_price_list)
   end
 
   class << self

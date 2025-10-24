@@ -43,26 +43,6 @@ class TestTelegramBotHandler < Minitest::Test
     ENV.delete('PRICE_LIST_PATH')
   end
 
-  def test_read_welcome_message_success
-    # Test reading welcome message from file successfully
-    welcome_text = @handler.send(:read_welcome_message)
-
-    refute_empty welcome_text
-    assert_includes welcome_text, 'Добро пожаловать в автосервис "Кузник"'
-  end
-
-  def test_read_welcome_message_fallback_on_error
-    # Mock File.read to raise an error and logger to expect error call
-    File.stub(:read, ->(_path) { raise StandardError, 'File error' }) do
-      @logger.expect(:error, nil, [/Error reading welcome message/])
-
-      welcome_text = @handler.send(:read_welcome_message)
-
-      assert_equal 'Привет! Я бот для записи на услуги автосервиса. Чем я могу вам помочь?', welcome_text
-      @logger.verify
-    end
-  end
-
   def test_start_command_with_welcome_message
     # Mock bot API
     bot = Minitest::Mock.new

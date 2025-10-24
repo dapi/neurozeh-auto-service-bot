@@ -47,7 +47,8 @@
       "Bash(find:*)",
       "Read(//Users/danil/.rbenv/versions/3.4.2/lib/ruby/gems/3.4.0/gems/**)",
       "Bash(./bot.rb:*)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

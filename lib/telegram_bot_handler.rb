@@ -69,12 +69,10 @@ class TelegramBotHandler
       @logger.info "User #{user_id} issued /start command"
       @conversation_manager.clear_history(user_id)
 
-      # Read welcome message from file
-      welcome_text = read_welcome_message
-
+      # Use welcome message from config
       bot.api.send_message(
         chat_id: chat_id,
-        text: welcome_text,
+        text: @config.welcome_message,
         parse_mode: 'Markdown'
       )
       return
@@ -120,13 +118,5 @@ class TelegramBotHandler
         text: 'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте позже.'
       )
     end
-  end
-
-  def read_welcome_message
-    File.read(@config.welcome_message_path)
-  rescue StandardError => e
-    @logger.error "Error reading welcome message: #{e.message}"
-    # Fallback сообщение на случай ошибки чтения файла
-    'Привет! Я бот для записи на услуги автосервиса. Чем я могу вам помочь?'
   end
 end
