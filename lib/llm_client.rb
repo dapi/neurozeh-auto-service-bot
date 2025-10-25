@@ -14,7 +14,15 @@ class LLMClient
 
   # Новый метод - отправка сообщения с использованием персистентного чата
   def send_message_to_user(user_info, message_content, additional_context = nil)
+    # Trace логирование для отслеживания источника запроса
+    caller_info = caller_locations(1, 1).first
+    Application.logger.info "🔍 LLM CLIENT TRACE: Called from #{caller_info.path}:#{caller_info.lineno}"
     Application.logger.info "Sending message to user #{user_info[:id]}"
+    Application.logger.debug "🔍 OUTGOING MESSAGE TRACE:"
+    Application.logger.debug "  User: #{user_info[:id]} (#{user_info[:first_name]} #{user_info[:last_name]})"
+    Application.logger.debug "  Message length: #{message_content.length} chars"
+    Application.logger.debug "  Message preview: #{message_content[0..100].inspect}#{'...' if message_content.length > 100}"
+    Application.logger.debug "  Additional context: #{additional_context ? 'YES' : 'NO'}"
 
     # Получаем или создаем чат для пользователя
     db_chat = @conversation_manager.get_or_create_chat(user_info)

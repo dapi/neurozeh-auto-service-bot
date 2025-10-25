@@ -2,6 +2,7 @@
 
 require 'ruby_llm'
 require 'telegram/bot'
+require 'commonmarker'
 
 class RequestDetector < RubyLLM::Tool
   description "Определяет является ли сообщение клиента заявкой на услугу и отправляет ее в административный чат"
@@ -109,6 +110,9 @@ class RequestDetector < RubyLLM::Tool
       # Создаем уведомление для админского чата с защитой от ошибок
       notification = format_admin_notification_safe(request_info, username, name)
 
+      # Очищаем текст для безопасного Markdown
+      notification = sanitize_markdown(notification)
+
       unless notification && !notification.strip.empty?
         Application.logger.error "Empty notification generated"
         return { error: "Ошибка форматирования уведомления" }
@@ -133,7 +137,7 @@ class RequestDetector < RubyLLM::Tool
       Application.logger.info "Request notification sent to admin chat #{admin_chat_id}"
       { success: true }
     rescue Telegram::Bot::Exceptions::ResponseError => e
-      Application.logger.error "Telegram API error: #{e.message}"
+      log_telegram_api_error(e, request_info, username, name)
       { error: "Ошибка API Telegram: #{e.message}" }
     rescue Telegram::Bot::Exceptions::BaseError => e
       Application.logger.error "Telegram bot error: #{e.class}: #{e.message}"
@@ -478,6 +482,84 @@ class RequestDetector < RubyLLM::Tool
     rescue StandardError => e
       Application.logger.error "Error in format_action_buttons_safe: #{e.message}"
       ""
+    end
+  end
+
+  def sanitize_markdown(text)
+    return text unless text && !text.empty?
+
+    begin
+      # Используем CommonMarker для валидации и исправления Markdown
+      Application.logger.debug "🔍 SANITIZING MARKDOWN: Input length #{text.length} chars"
+
+      # Парсим и рендерим через CommonMarker для исправления структуры
+      doc = Commonmarker.parse(text)
+      sanitized = doc.to_commonmark
+
+      # Дополнительная очистка для Telegram API
+      sanitized = sanitize_for_telegram(sanitized)
+
+      Application.logger.debug "🔍 SANITIZED MARKDOWN: Output length #{sanitized.length} chars"
+      sanitized
+
+    rescue StandardError => e
+      Application.logger.error "Commonmarker sanitization failed: #{e.message}, using fallback"
+      # Fallback к базовой очистке
+      sanitize_for_telegram(text)
+    end
+  end
+
+  def sanitize_for_telegram(text)
+    return text unless text && !text.empty?
+
+    sanitized = text.dup
+
+    # Удаляем управляющие символы которые могут сломать Telegram API
+    sanitized.gsub!(/[\u0000-\u001F\u007F-\u009F]/, '')   # Управляющие символы
+    sanitized.gsub!(/[\u2028\u2029]/, ' ')                # Line separator и paragraph separator
+    sanitized.gsub!(/[\uFFFE\uFFFF]/, '')                 # Invalid Unicode
+
+    # Удаляем пустые строки в конце
+    sanitized.rstrip!
+
+    sanitized
+  rescue StandardError => e
+    Application.logger.error "Error in telegram sanitization: #{e.message}"
+    text
+  end
+
+  def log_telegram_api_error(error, request_info, username, name)
+    # Детальное trace логирование при ошибке Telegram API
+    Application.logger.error "🔍 TELEGRAM API ERROR TRACE:"
+    Application.logger.error "  Error: #{error.message}"
+    Application.logger.error "  Error code: #{error.instance_variable_get(:@error_code) if error.instance_variable_defined?(:@error_code)}"
+    Application.logger.error "  Description: #{error.instance_variable_get(:@description) if error.instance_variable_defined?(:@description)}"
+
+    # Логируем вызова из стека
+    Application.logger.error "  Call stack:"
+    caller_locations(0, 5).each do |loc|
+      Application.logger.error "    #{loc.path}:#{loc.lineno} in #{loc.label}"
+    end
+
+    # Если ошибка парсинга Markdown, логируем текст
+    if error.message.include?("can't parse entities")
+      notification = format_admin_notification_safe(request_info, username, name)
+      Application.logger.error "  Failed text length: #{notification&.bytesize} bytes"
+      Application.logger.error "  Failed text preview (first 500 chars):"
+      Application.logger.error "    #{notification&.truncate(500).inspect}"
+
+      # Ищем проблемные символы в районе указанного offset
+      if match = error.message.match(/byte offset (\d+)/)
+        offset = match[1].to_i
+        Application.logger.error "  Problem area around byte offset #{offset}:"
+        notification&.chars.each_with_index do |char, i|
+          if i >= [offset - 50, 0].max && i <= offset + 50
+            byte_pos = notification.byteslice(0, i).bytesize
+            indicator = (byte_pos == offset) ? "👉" : "  "
+            Application.logger.error "    #{indicator} [#{i}] #{char.inspect} (byte pos: #{byte_pos})"
+          end
+        end
+      end
     end
   end
 end

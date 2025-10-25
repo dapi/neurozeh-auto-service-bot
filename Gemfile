@@ -36,3 +36,6 @@ gem 'webrick', '~> 1.9'
 gem "csv", "~> 3.3"
 
 gem "semver2", "~> 3.4"
+
+# Markdown sanitization for Telegram API compatibility
+gem "commonmarker", "~> 1.0"

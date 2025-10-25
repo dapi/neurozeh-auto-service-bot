@@ -65,7 +65,8 @@
       "Bash(sqlite3:*)",
       "Bash(RUBYLLM_DEBUG=true ./bot.rb:*)",
       "Bash(./test_request_detector.rb:*)",
-      "Bash(./test_request_detector_fixed.rb:*)"
+      "Bash(./test_request_detector_fixed.rb:*)",
+      "WebFetch(domain:core.telegram.org)"
     ],
     "deny": [],
     "ask": []
