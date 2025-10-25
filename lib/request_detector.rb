@@ -7,26 +7,29 @@ class RequestDetector < RubyLLM::Tool
   description "Определяет является ли сообщение клиента заявкой на услугу и отправляет ее в административный чат"
 
   param :message_text, desc: "Текст сообщения от клиента"
-  param :user_id, desc: "ID пользователя в Telegram", type: :integer
-  param :username, desc: "Username пользователя", required: false
-  param :first_name, desc: "Имя пользователя", required: false
+  param :name, desc: "Имя пользователя", required: false
   param :conversation_context, desc: "Контекст диалога (последние сообщения)", required: false
   param :car_info, desc: "Информация об автомобиле (марка, модель, класс, пробег)", required: false
   param :required_services, desc: "Перечень необходимых работ", required: false
   param :cost_calculation, desc: "Расчет стоимости услуг", required: false
   param :dialog_context, desc: "Контекст диалога для понимания ситуации", required: false
+  param :total_cost_to_user, desc: "Последняя названная пользователю общая стоимость услуг", required: false
+  param :conversation_summary, desc: "Краткая выжимка из истории переписки между ботом и клиентом", required: false
 
   def initialize
     @enriched_data = {}
+    @user_data = {}
   end
 
   # Метод для установки обогащенных данных извне
-  def enrich_with(car_info:, required_services:, cost_calculation:, dialog_context:)
+  def enrich_with(car_info:, required_services:, cost_calculation:, dialog_context:, total_cost_to_user: nil, conversation_summary: nil)
     @enriched_data = {
       car_info: car_info,
       required_services: required_services,
       cost_calculation: cost_calculation,
-      dialog_context: dialog_context
+      dialog_context: dialog_context,
+      total_cost_to_user: total_cost_to_user,
+      conversation_summary: conversation_summary
     }
     Application.logger.debug "RequestDetector enriched with data: #{@enriched_data.keys}"
   end
@@ -36,59 +39,90 @@ class RequestDetector < RubyLLM::Tool
     @enriched_data
   end
 
-  def execute(message_text:, user_id:, username: nil, first_name: nil, conversation_context: nil,
-              car_info: nil, required_services: nil, cost_calculation: nil, dialog_context: nil)
-    Application.logger.info "Request detected for user #{user_id}: #{message_text[0..50]}..."
+  def execute(message_text:, name: nil, conversation_context: nil,
+              car_info: nil, required_services: nil, cost_calculation: nil, dialog_context: nil,
+              total_cost_to_user: nil, conversation_summary: nil)
 
-    # LLM уже определил(а), что это заявка на услугу, поэтому сразу обрабатываем её
-    Application.logger.info "Processing service request - confirmed by LLM"
-    admin_chat_id = AppConfig.admin_chat_id
+    begin
+      Application.logger.info "Request detected: #{message_text[0..50]}..."
+      Application.logger.debug "Request data - name: #{name}"
 
-    # Обогащенные данные имеют приоритет над переданными параметрами
-    final_car_info = @enriched_data[:car_info] || car_info
-    final_required_services = @enriched_data[:required_services] || required_services
-    final_cost_calculation = @enriched_data[:cost_calculation] || cost_calculation
-    final_dialog_context = @enriched_data[:dialog_context] || dialog_context
+      # Валидация конфигурации
+      admin_chat_id = AppConfig.admin_chat_id
+      unless admin_chat_id
+        Application.logger.error "Admin chat ID not configured"
+        return { error: "Сервис заявок не настроен" }
+      end
 
-    # Создаем безопасную структуру данных для заявки
-    request_info = {
-      confidence: 1.0, # максимальная уверенность, т.к. вызвано LLM
-      original_text: message_text || '',
-      car_info: final_car_info || {},
-      required_services: final_required_services || [],
-      cost_calculation: final_cost_calculation || {},
-      dialog_context: final_dialog_context || ''
-    }
+      # LLM уже определил(а), что это заявка на услугу, поэтому сразу обрабатываем её
+      Application.logger.info "Processing service request - confirmed by LLM"
 
-    result = send_to_admin_chat(request_info, user_id, username, first_name, admin_chat_id)
+      # Обогащенные данные имеют приоритет над переданными параметрами
+      final_car_info = @enriched_data[:car_info] || car_info
+      final_required_services = @enriched_data[:required_services] || required_services
+      final_cost_calculation = @enriched_data[:cost_calculation] || cost_calculation
+      final_dialog_context = @enriched_data[:dialog_context] || dialog_context
 
-    if result[:success]
-      return {
-        success: true,
-        message: "Заявка отправлена администратору"
+      # Валидация основных данных
+      unless message_text && !message_text.strip.empty?
+        Application.logger.error "Empty message_text"
+        return { error: "Пустой текст сообщения" }
+      end
+
+      # Создаем безопасную структуру данных для заявки
+      request_info = {
+        confidence: 1.0, # максимальная уверенность, т.к. вызвано LLM
+        original_text: message_text || '',
+        car_info: final_car_info || {},
+        required_services: final_required_services || [],
+        cost_calculation: final_cost_calculation || {},
+        dialog_context: final_dialog_context || ''
       }
-    else
-      return {
-        success: false,
-        error: result[:error]
-      }
+
+      result = send_to_admin_chat(request_info, nil, name, admin_chat_id)
+
+      if result[:success]
+        return "Заявка отправлена администратору"
+      else
+        Application.logger.error "Admin notification failed: #{result[:error]}"
+        return { error: result[:error] }
+      end
+
+    rescue StandardError => e
+      Application.logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
+      Application.logger.error "Full backtrace:"
+      e.backtrace&.each { |line| Application.logger.error "  #{line}" }
+      { error: "Ошибка при обработке заявки: #{e.message}" }
     end
-  rescue StandardError => e
-    Application.logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
-    Application.logger.error "Full backtrace:"
-    e.backtrace&.each { |line| Application.logger.error "  #{line}" }
-    { error: e.message }
   end
 
   private
 
-  def send_to_admin_chat(request_info, user_id, username, first_name, admin_chat_id)
+  def send_to_admin_chat(request_info, username, name, admin_chat_id)
     begin
-      # Создаем уведомление для админского чата
-      notification = format_admin_notification(request_info, user_id, username, first_name)
+      # Валидация входных данных
+      unless admin_chat_id
+        Application.logger.error "Admin chat ID is nil"
+        return { error: "Admin chat ID не указан" }
+      end
 
-      # Используем Telegram bot API для отправки
-      bot = Telegram::Bot::Client.new(AppConfig.telegram_bot_token)
+      # Создаем уведомление для админского чата с защитой от ошибок
+      notification = format_admin_notification_safe(request_info, username, name)
+
+      unless notification && !notification.strip.empty?
+        Application.logger.error "Empty notification generated"
+        return { error: "Ошибка форматирования уведомления" }
+      end
+
+      # Валидация токена бота
+      bot_token = AppConfig.telegram_bot_token
+      unless bot_token && !bot_token.strip.empty?
+        Application.logger.error "Telegram bot token is empty or nil"
+        return { error: "Токен бота не настроен" }
+      end
+
+      # Используем Telegram bot API для отправки с таймаутом
+      bot = Telegram::Bot::Client.new(bot_token)
 
       bot.api.send_message(
         chat_id: admin_chat_id,
@@ -99,39 +133,73 @@ class RequestDetector < RubyLLM::Tool
       Application.logger.info "Request notification sent to admin chat #{admin_chat_id}"
       { success: true }
     rescue Telegram::Bot::Exceptions::ResponseError => e
-      Application.logger.error "Failed to send admin notification: #{e.message}"
-      { error: "Telegram API error: #{e.message}" }
+      Application.logger.error "Telegram API error: #{e.message}"
+      { error: "Ошибка API Telegram: #{e.message}" }
+    rescue Telegram::Bot::Exceptions::BaseError => e
+      Application.logger.error "Telegram bot error: #{e.class}: #{e.message}"
+      { error: "Ошибка бота Telegram: #{e.message}" }
+    rescue Net::TimeoutError, Net::OpenTimeout => e
+      Application.logger.error "Network timeout sending admin notification: #{e.message}"
+      { error: "Таймаут сети при отправке уведомления" }
     rescue StandardError => e
       Application.logger.error "❌ REQUEST ERROR: Unexpected error sending admin notification: #{e.class}: #{e.message}"
       Application.logger.error "Full backtrace:"
       e.backtrace&.each { |line| Application.logger.error "  #{line}" }
-      { error: "Unexpected error: #{e.message}" }
+      { error: "Непредвиденная ошибка: #{e.message}" }
     end
   end
 
-  def format_admin_notification(request_info, user_id, username, first_name)
+  def format_admin_notification(request_info, username, name)
     # Базовая информация
-    notification = format_basic_info(request_info, user_id, username, first_name)
+    notification = format_basic_info(request_info, username, name)
 
     # Обогащенная информация
     notification += format_car_info(request_info[:car_info])
     notification += format_required_services(request_info[:required_services])
-    notification += format_cost_calculation(request_info[:cost_calculation])
+    notification += format_total_cost_to_user
+    notification += format_conversation_summary
     notification += format_dialog_context(request_info[:dialog_context])
-    notification += format_action_buttons(user_id)
+    notification += format_action_buttons
 
     notification
   end
 
-  def format_basic_info(request_info, user_id, username, first_name)
-    user_link = if username
-                   "[@#{username}](https://t.me/#{username})"
-                 else
-                   first_name || "User##{user_id}"
-                 end
+  def format_admin_notification_safe(request_info, username, name)
+    begin
+      notification = ""
+
+      # Базовая информация с защитой
+      notification += format_basic_info_safe(request_info, username, name)
+
+      # Обогащенная информация с защитой
+      notification += format_car_info_safe(request_info[:car_info])
+      notification += format_required_services_safe(request_info[:required_services])
+      notification += format_total_cost_to_user_safe
+      notification += format_conversation_summary_safe
+      notification += format_dialog_context_safe(request_info[:dialog_context])
+      notification += format_action_buttons_safe
+
+      notification
+    rescue StandardError => e
+      Application.logger.error "Error formatting admin notification: #{e.message}"
+      # Возвращаем базовое уведомление в случае ошибки форматирования
+      basic_name = name.to_s.strip.empty? ? "Клиент" : name.to_s.strip
+      "🔔 **НОВАЯ ЗАЯВКА**\n\n👤 **Клиент:** #{basic_name}\n\n💬 **Сообщение:**\n```\n#{request_info[:original_text].to_s.strip[0..200]}\n```\n\n⚠️ *Произошла ошибка форматирования уведомления*"
+    end
+  end
+
+  def format_basic_info(request_info, username, name)
+    user_display = name || "Анонимный пользователь"
 
     notification = "🔔 **НОВАЯ ЗАЯВКА**\n\n"
-    notification += "👤 **Клиент:** #{user_link} - `#{user_id}`\n\n"
+    notification += "👤 **Клиент:** #{user_display}\n"
+
+    # Добавляем дополнительную информацию если она есть
+    if name
+      notification += "📝 **Имя:** #{name}\n"
+    end
+
+    notification += "\n"
 
     # Сохраняем обратную совместимость с старым форматом
     if request_info[:matched_patterns] && !request_info[:matched_patterns].empty?
@@ -240,7 +308,176 @@ class RequestDetector < RubyLLM::Tool
     info
   end
 
-  def format_action_buttons(user_id)
-    "\n🔗 **Действия:**\n/answer_#{user_id} - Ответить клиенту\n/close_#{user_id} - Закрыть заявку\n"
+  def format_total_cost_to_user
+    total_cost = @enriched_data[:total_cost_to_user]
+    return "" unless total_cost && !total_cost.to_s.strip.empty?
+
+    info = "\n💰 **Общая стоимость названная клиенту:**\n"
+    info += "• **#{total_cost}**\n"
+    info += "• *Окончательная стоимость определяется после диагностики*\n\n"
+    info
+  end
+
+  def format_conversation_summary
+    summary = @enriched_data[:conversation_summary]
+    return "" unless summary && !summary.to_s.strip.empty?
+
+    info = "\n📝 **Выжимка из переписки:**\n"
+    info += "#{summary}\n\n"
+    info
+  end
+
+  def format_action_buttons(user_id = nil)
+    "" # "\n🔗 **Действия:**\n/answer_#{user_id} - Ответить клиенту\n/close_#{user_id} - Закрыть заявку\n"
+  end
+
+  # Безопасные версии методов форматирования (уровень C защиты)
+
+  def format_basic_info_safe(request_info, username, name)
+    begin
+      user_display = name.to_s.strip.empty? ? "Анонимный пользователь" : name.to_s.strip
+
+      notification = "🔔 **НОВАЯ ЗАЯВКА**\n\n"
+      notification += "👤 **Клиент:** #{user_display}\n"
+
+      # Добавляем дополнительную информацию если она есть
+      if name && !name.to_s.strip.empty?
+        notification += "📝 **Имя:** #{name}\n"
+      end
+
+      notification += "\n"
+
+      # Сохраняем обратную совместимость со старым форматом (с защитой)
+      if request_info[:matched_patterns] && !request_info[:matched_patterns].empty?
+        notification += "🔍 **Распознанные паттерны:**\n"
+        patterns = Array(request_info[:matched_patterns]).first(3)
+        patterns.each do |pattern|
+          pattern_str = pattern.to_s
+          type, pattern_text = pattern_str.split(':', 2)
+          notification += "• #{type}: `#{pattern_text}`\n"
+        end
+        notification += "\n"
+      end
+
+      # Защита от отсутствия original_text
+      original_text = request_info[:original_text].to_s.strip
+      original_text = "[текст отсутствует]" if original_text.empty?
+
+      notification += "💬 **Сообщение:**\n"
+      notification += "```\n#{original_text}\n```\n\n"
+
+      notification
+    rescue StandardError => e
+      Application.logger.error "Error in format_basic_info_safe: #{e.message}"
+      "🔔 **НОВАЯ ЗАЯВКА**\n\n👤 **Клиент:** [ошибка форматирования]\n\n💬 **Сообщение:** [не удалось отформатировать]\n\n"
+    end
+  end
+
+  def format_car_info_safe(car_info)
+    return "" unless car_info && !car_info.to_s.strip.empty? && car_info.respond_to?(:empty?)
+
+    begin
+      info = "\n🚗 **Информация об автомобиле:**\n"
+      has_data = false
+
+      if car_info[:make_model]
+        info += "• **Марка и модель:** #{car_info[:make_model]}\n"
+        has_data = true
+      end
+
+      if car_info[:year]
+        info += "• **Год выпуска:** #{car_info[:year]}\n"
+        has_data = true
+      end
+
+      if car_info[:car_class]
+        class_desc = car_info[:class_description] || car_info[:car_class]
+        info += "• **Класс автомобиля:** #{class_desc}\n"
+        has_data = true
+      else
+        info += "• **Класс автомобиля:** требуется уточнение\n"
+        has_data = true
+      end
+
+      if car_info[:mileage]
+        info += "• **Пробег:** #{car_info[:mileage]}\n"
+        has_data = true
+      end
+
+      info += "\n" if has_data
+      info
+    rescue StandardError => e
+      Application.logger.error "Error in format_car_info_safe: #{e.message}"
+      "\n🚗 **Информация об автомобиле:** [ошибка форматирования]\n\n"
+    end
+  end
+
+  def format_required_services_safe(services)
+    return "" unless services && !services.to_s.strip.empty?
+
+    begin
+      info = "\n🔧 **Необходимые работы:**\n"
+      Array(services).each_with_index do |service, index|
+        service_str = service.to_s.strip
+        next if service_str.empty?
+        info += "#{index + 1}. #{service_str}\n"
+      end
+      info += "\n"
+      info
+    rescue StandardError => e
+      Application.logger.error "Error in format_required_services_safe: #{e.message}"
+      "\n🔧 **Необходимые работы:** [ошибка форматирования]\n\n"
+    end
+  end
+
+  def format_total_cost_to_user_safe
+    total_cost = @enriched_data[:total_cost_to_user]
+    return "" unless total_cost && !total_cost.to_s.strip.empty?
+
+    begin
+      info = "\n💰 **Общая стоимость названная клиенту:**\n"
+      info += "• **#{total_cost}**\n"
+      info += "• *Окончательная стоимость определяется после диагностики*\n\n"
+      info
+    rescue StandardError => e
+      Application.logger.error "Error in format_total_cost_to_user_safe: #{e.message}"
+      "\n💰 **Общая стоимость названная клиенту:** [ошибка форматирования]\n\n"
+    end
+  end
+
+  def format_conversation_summary_safe
+    summary = @enriched_data[:conversation_summary]
+    return "" unless summary && !summary.to_s.strip.empty?
+
+    begin
+      info = "\n📝 **Выжимка из переписки:**\n"
+      info += "#{summary}\n\n"
+      info
+    rescue StandardError => e
+      Application.logger.error "Error in format_conversation_summary_safe: #{e.message}"
+      "\n📝 **Выжимка из переписки:** [ошибка форматирования]\n\n"
+    end
+  end
+
+  def format_dialog_context_safe(context)
+    return "" unless context && !context.to_s.strip.empty?
+
+    begin
+      info = "\n💬 **Контекст диалога:**\n"
+      info += "#{context}\n\n"
+      info
+    rescue StandardError => e
+      Application.logger.error "Error in format_dialog_context_safe: #{e.message}"
+      "\n💬 **Контекст диалога:** [ошибка форматирования]\n\n"
+    end
+  end
+
+  def format_action_buttons_safe
+    begin
+      "" # "\n🔗 **Действия:**\n/answer_#{user_id} - Ответить клиенту\n/close_#{user_id} - Закрыть заявку\n"
+    rescue StandardError => e
+      Application.logger.error "Error in format_action_buttons_safe: #{e.message}"
+      ""
+    end
   end
 end

@@ -4,7 +4,6 @@ require 'ruby_llm'
 require 'logger'
 require_relative 'request_detector'
 require_relative 'dialog_analyzer'
-require_relative 'cost_calculator'
 
 class LLMClient
   MAX_RETRIES = 1
@@ -106,30 +105,40 @@ class LLMClient
     messages_array = @conversation_manager.get_history(user_info[:id])
 
     dialog_analyzer = DialogAnalyzer.new
-    cost_calculator = CostCalculator.new(AppConfig.price_list_path)
 
     car_info = dialog_analyzer.extract_car_info(messages_array)
     required_services = dialog_analyzer.extract_services(messages_array)
     dialog_context = dialog_analyzer.extract_dialog_context(messages_array)
 
-    # Рассчитываем стоимость если возможно
-    cost_calculation = nil
-    if car_info && car_info[:class] && required_services && required_services.any?
-      cost_calculation = cost_calculator.calculate_cost(required_services, car_info[:class])
-      Application.logger.debug "Cost calculation completed: #{cost_calculation.inspect}" if cost_calculation
-    end
+    # Извлекаем последнюю названную общую стоимость
+    total_cost_to_user = dialog_analyzer.extract_last_total_cost(messages_array)
+    Application.logger.debug "Extracted total cost to user: #{total_cost_to_user}" if total_cost_to_user
 
-    # Создаем и обогащаем RequestDetector
-    RequestDetector.new.tap do |detector|
-      detector.enrich_with(
-        car_info: car_info,
-        required_services: required_services,
-        cost_calculation: cost_calculation,
-        dialog_context: dialog_context
-      )
-    end
+    # Создаем краткую выжимку из переписки
+    conversation_summary = dialog_analyzer.extract_conversation_summary(messages_array)
+    Application.logger.debug "Generated conversation summary with #{conversation_summary.length} characters"
+
+    # Не рассчитываем стоимость - она уже есть в ответах бота пользователю
+    cost_calculation = nil
+    Application.logger.debug "Skipping cost calculation - using extracted total cost: #{total_cost_to_user}"
+
+    # Создаем RequestDetector
+    detector = RequestDetector.new
+
+    # Обогащаем дополнительными данными
+    detector.enrich_with(
+      car_info: car_info,
+      required_services: required_services,
+      cost_calculation: cost_calculation,
+      dialog_context: dialog_context,
+      total_cost_to_user: total_cost_to_user,
+      conversation_summary: conversation_summary
+    )
+
+    detector
   rescue StandardError => e
     Application.logger.error "Error creating enriched RequestDetector: #{e.message}"
+    Application.logger.error "Backtrace: #{e.backtrace.first(5).join("\n")}"
     # Возвращаем базовый RequestDetector в случае ошибки
     RequestDetector.new
   end

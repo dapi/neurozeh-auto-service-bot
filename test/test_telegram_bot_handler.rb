@@ -23,11 +23,9 @@ class TestTelegramBotHandler < Minitest::Test
     @logger = NullLogger.new
 
     @handler = TelegramBotHandler.new(
-      @config,
       @ai_client,
       @rate_limiter,
-      @conversation_manager,
-      @logger
+      @conversation_manager
     )
   end
 
@@ -340,5 +338,42 @@ class TestTelegramBotHandler < Minitest::Test
 
     bot.verify
     bot_api.verify
+  end
+
+  def test_reset_command_success
+    # Mock bot API
+    bot = Minitest::Mock.new
+    bot_api = Minitest::Mock.new
+
+    bot.expect(:api, bot_api)
+    bot_api.expect(:send_message, nil) do |args|
+      assert_equal '✅ Диалог сброшен. Можем начать разговор заново!', args[:text]
+      assert_equal 'Markdown', args[:parse_mode]
+      true
+    end
+
+    # Mock conversation manager to return success
+    @conversation_manager.expect(:clear_history, true, [123])
+
+    # Create test message
+    message = Minitest::Mock.new
+    message.expect(:new_chat_members, nil)
+    message.expect(:group_chat_created, nil)
+    message.expect(:supergroup_chat_created, nil)
+    message.expect(:channel_chat_created, nil)
+
+    # from mock будет вызываться несколько раз в разных частях кода
+    from_mock = OpenStruct.new(id: 123, username: 'testuser', first_name: 'Test')
+    message.expect(:from, from_mock)
+    message.expect(:from, from_mock)
+    message.expect(:text, '/reset')
+    message.expect(:chat, OpenStruct.new(id: 456))
+
+    @handler.send(:process_message, message, bot)
+
+    message.verify
+    bot.verify
+    bot_api.verify
+    @conversation_manager.verify
   end
 end

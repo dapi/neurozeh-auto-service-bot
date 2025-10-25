@@ -123,6 +123,63 @@ class DialogAnalyzer
     end
   end
 
+  # Извлечение последней названной общей стоимости из ответов бота
+  def extract_last_total_cost(conversation_history)
+    return nil unless conversation_history&.any?
+
+    # Ищем в ответах бота упоминания общей стоимости
+    conversation_history.reverse.each do |message|
+      next unless message[:role] == 'assistant'
+
+      text = message[:content]
+      # Ищем паттерны типа "Итого: X руб", "Общая стоимость: X руб", "Стоимость: X руб"
+      total_patterns = [
+        /(?:итого|общая\s+стоимость|стоимость)\s*[:\-]?\s*(\d[\d\s]*)\s*(?:руб|р\.|руб\.|р)/i,
+        /(?:итого|общая\s+стоимость|стоимость)\s*[:\-]?\s*(\d[\d\s]*)\s*(?:тыс|тысяч|thousand)\s*(?:руб|р\.|руб\.|р)/i
+      ]
+
+      total_patterns.each do |pattern|
+        match = text.match(pattern)
+        if match
+          price_str = match[1]
+          price_num = parse_cost_string(price_str)
+          return format_cost(price_num) if price_num && price_num > 0
+        end
+      end
+    end
+
+    nil
+  end
+
+  # Создание краткой выжимки из истории переписки
+  def extract_conversation_summary(conversation_history)
+    return "" unless conversation_history&.any?
+
+    summary_lines = []
+    message_count = 0
+
+    # Ограничиваем количество сообщений для краткости
+    limited_history = conversation_history.last(8) # Берем последние 8 сообщений
+
+    limited_history.each do |message|
+      next unless message[:content] && !message[:content].strip.empty?
+
+      role_symbol = message[:role] == 'user' ? '👤' : '🤖'
+      content = truncate_message(message[:content], 150) # Обрезаем до 150 символов
+
+      summary_lines << "#{role_symbol} #{content}"
+      message_count += 1
+    end
+
+    return "" if summary_lines.empty?
+
+    # Добавляем заголовок с количеством сообщений
+    summary = "**Последние #{message_count} сообщений:**\n"
+    summary += summary_lines.join("\n")
+
+    summary
+  end
+
   private
 
   # Извлечение марки и модели автомобиля
@@ -241,5 +298,45 @@ class DialogAnalyzer
     else
       "#{mileage_num} км"
     end
+  end
+
+  # Парсинг строки со стоимостью
+  def parse_cost_string(cost_str)
+    return nil unless cost_str
+
+    # Убираем все нецифровые символы кроме пробелов
+    clean_cost = cost_str.gsub(/[^\d\s]/, '').strip
+
+    # Убираем пробелы и преобразуем в число
+    clean_cost.gsub!(/\s+/, '')
+
+    # Проверяем на тысячи
+    if clean_cost.length >= 4 && clean_cost.to_i > 1000
+      clean_cost.to_i
+    else
+      clean_cost.to_i
+    end
+  rescue StandardError => e
+    Application.logger.warn "Error parsing cost '#{cost_str}': #{e.message}"
+    nil
+  end
+
+  # Форматирование стоимости
+  def format_cost(cost)
+    return nil unless cost
+
+    # Форматируем число с пробелами
+    formatted = cost.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse
+    "#{formatted} руб."
+  end
+
+  # Обрезка сообщения до указанной длины
+  def truncate_message(message, max_length)
+    return "" unless message
+    return message if message.length <= max_length
+
+    truncated = message[0..(max_length - 3)]
+    truncated += "..."
+    truncated
   end
 end

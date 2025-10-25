@@ -214,6 +214,28 @@ class TelegramBotHandler
       return
     end
 
+    # Handle /reset command
+    if text && text.start_with?('/reset')
+      Application.logger.info "User #{user_id} issued /reset command"
+
+      if @conversation_manager.clear_history(user_id)
+        bot.api.send_message(
+          chat_id: chat_id,
+          text: '✅ Диалог сброшен. Можем начать разговор заново!',
+          parse_mode: 'Markdown'
+        )
+        Application.logger.info "User #{user_id} issued /reset command - success"
+      else
+        bot.api.send_message(
+          chat_id: chat_id,
+          text: '❌ Не удалось сбросить диалог. Попробуйте позже.',
+          parse_mode: 'Markdown'
+        )
+        Application.logger.error "User #{user_id} issued /reset command - failed"
+      end
+      return
+    end
+
     # Check rate limit
     unless @rate_limiter.allow?(user_id)
       Application.logger.warn "Rate limit exceeded for user #{user_id}"

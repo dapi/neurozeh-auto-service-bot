@@ -214,7 +214,5 @@ class TestRequestDetector < Minitest::Test
 
       assert result[:success], "Expected request to be detected, got: #{result}"
     end
-      end
-    end
   end
 end

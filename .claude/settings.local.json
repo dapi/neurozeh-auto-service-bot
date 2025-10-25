@@ -62,7 +62,10 @@
       "Bash(rake:*)",
       "Bash(chmod:*)",
       "Bash(./test_associations.rb:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(RUBYLLM_DEBUG=true ./bot.rb:*)",
+      "Bash(./test_request_detector.rb:*)",
+      "Bash(./test_request_detector_fixed.rb:*)"
     ],
     "deny": [],
     "ask": []
