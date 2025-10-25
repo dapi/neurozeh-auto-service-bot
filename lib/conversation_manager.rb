@@ -3,7 +3,7 @@
 class ConversationManager
   # Получить или создать чат для пользователя
   def get_or_create_chat(user_info)
-    Application.logger.debug "Getting or creating chat for user #{user_info[:id]}"
+    Application.instance.logger.debug "Getting or creating chat for user #{user_info[:id]}"
 
     chat = Chat.find_or_create_by_telegram_user(user_info)
 
@@ -41,7 +41,7 @@ class ConversationManager
   # РЕАЛИЗАЦИЯ УДАЛЕНА: RubyLLM автоматически сохраняет сообщения при использовании chat.ask
   # Этот метод оставлен для совместимости с существующим кодом
   def add_message(user_id, role, content)
-    Application.logger.debug "Legacy add_message called for user #{user_id}, role: #{role} - NO-OP (handled by RubyLLM)"
+    Application.instance.logger.debug "Legacy add_message called for user #{user_id}, role: #{role} - NO-OP (handled by RubyLLM)"
   end
 
   # Очистить историю пользователя
@@ -50,7 +50,7 @@ class ConversationManager
     return false unless chat
 
     Message.where(chat_id: chat.id).destroy_all
-    Application.logger.info "Cleared history for user #{user_id}"
+    Application.instance.logger.info "Cleared history for user #{user_id}"
     true
   end
 
@@ -58,7 +58,7 @@ class ConversationManager
   def clear_all
     Message.destroy_all
     Chat.destroy_all
-    Application.logger.info "Cleared all conversation history"
+    Application.instance.logger.info "Cleared all conversation history"
   end
 
   # Проверить существование диалога
@@ -104,7 +104,7 @@ class ConversationManager
     # Удаляем пустые чаты
     Chat.where.missing(:messages).destroy_all
 
-    Application.logger.info "Cleaned up #{count} old messages older than #{days_to_keep} days"
+    Application.instance.logger.info "Cleaned up #{count} old messages older than #{days_to_keep} days"
     count
   end
 

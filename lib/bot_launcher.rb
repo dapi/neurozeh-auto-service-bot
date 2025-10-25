@@ -8,7 +8,7 @@ class BotLauncher
   end
 
   def start
-    Application.logger.info "Bot starting in #{AppConfig.bot_mode} mode..."
+    Application.instance.logger.info "Bot starting in #{AppConfig.bot_mode} mode..."
 
     case AppConfig.bot_mode
     when 'polling'

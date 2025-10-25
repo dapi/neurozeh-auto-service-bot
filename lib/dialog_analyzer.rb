@@ -68,7 +68,7 @@ class DialogAnalyzer
   
   # Основной метод извлечения информации об автомобиле
   def extract_car_info(conversation_history)
-    Application.logger.debug "Extracting car info from conversation"
+    Application.instance.logger.debug "Extracting car info from conversation"
 
     car_info = {
       make_model: extract_make_model(conversation_history),
@@ -81,13 +81,13 @@ class DialogAnalyzer
     car_info[:class] = car_class[:class]
     car_info[:class_description] = car_class[:description]
 
-    Application.logger.debug "Car info extracted: #{car_info.inspect}"
+    Application.instance.logger.debug "Car info extracted: #{car_info.inspect}"
     car_info
   end
 
   # Извлечение необходимых услуг из диалога
   def extract_services(conversation_history)
-    Application.logger.debug "Extracting services from conversation"
+    Application.instance.logger.debug "Extracting services from conversation"
 
     services = []
     conversation_history ||= []
@@ -99,7 +99,7 @@ class DialogAnalyzer
     end
 
     services = services.uniq
-    Application.logger.debug "Services extracted: #{services.inspect}"
+    Application.instance.logger.debug "Services extracted: #{services.inspect}"
     services
   end
 
@@ -317,7 +317,7 @@ class DialogAnalyzer
       clean_cost.to_i
     end
   rescue StandardError => e
-    Application.logger.warn "Error parsing cost '#{cost_str}': #{e.message}"
+    Application.instance.logger.warn "Error parsing cost '#{cost_str}': #{e.message}"
     nil
   end
 

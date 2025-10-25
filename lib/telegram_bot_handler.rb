@@ -2,46 +2,49 @@
 
 require 'telegram/bot'
 require 'logger'
+require_relative 'telegram_markdown_sanitizer'
 
 class TelegramBotHandler
-  def initialize(ai_client, rate_limiter, conversation_manager)
+  def initialize(ai_client, rate_limiter, conversation_manager, logger = nil)
     @ai_client = ai_client
     @rate_limiter = rate_limiter
     @conversation_manager = conversation_manager
+    @logger = logger || @logger
+    @markdown_sanitizer = TelegramMarkdownSanitizer.new(logger: @logger)
   end
 
   def handle_polling
-    Application.logger.info "Starting Telegram bot with token: #{AppConfig.telegram_bot_token[0..10]}..."
+    @logger.info "Starting Telegram bot with token: #{AppConfig.telegram_bot_token[0..10]}..."
 
     # Используем встроенный метод Telegram::Bot::Client.run для правильного polling
-    Telegram::Bot::Client.run(AppConfig.telegram_bot_token, logger: Application.logger) do |bot|
-      Application.logger.info 'Telegram bot client initialized successfully'
+    Telegram::Bot::Client.run(AppConfig.telegram_bot_token, logger: @logger) do |bot|
+      @logger.info 'Telegram bot client initialized successfully'
 
       # Тестируем соединение
       begin
         me = bot.api.get_me
-        Application.logger.info "Connected to bot #{me['result']['first_name']} (@#{me['result']['username']})"
+        @logger.info "Connected to bot #{me['result']['first_name']} (@#{me['result']['username']})"
       rescue StandardError => e
-        Application.logger.error "Failed to connect to Telegram API: #{e.class} - #{e.message}"
+        @logger.error "Failed to connect to Telegram API: #{e.class} - #{e.message}"
         raise e
       end
 
-      Application.logger.info 'Starting polling loop...'
+      @logger.info 'Starting polling loop...'
 
       bot.listen do |update|
         process_update(update, bot)
       rescue Telegram::Bot::Exceptions::ResponseError => e
-        Application.logger.error "Telegram API error: #{e.class} - #{e.message}"
-        Application.logger.error "Error code: #{e.error_code}" if e.respond_to?(:error_code)
-        Application.logger.error "Response body: #{e.response.body}" if e.respond_to?(:response)
+        @logger.error "Telegram API error: #{e.class} - #{e.message}"
+        @logger.error "Error code: #{e.error_code}" if e.respond_to?(:error_code)
+        @logger.error "Response body: #{e.response.body}" if e.respond_to?(:response)
       rescue StandardError => e
-        Application.logger.error "Error processing update: #{e.class} - #{e.message}"
-        Application.logger.error "Backtrace: #{e.backtrace.first(5).join("\n")}"
+        @logger.error "Error processing update: #{e.class} - #{e.message}"
+        @logger.error "Backtrace: #{e.backtrace.first(5).join("\n")}"
       end
     end
   rescue StandardError => e
-    Application.logger.error "Fatal error in polling: #{e.class} - #{e.message}"
-    Application.logger.error "Backtrace: #{e.backtrace.first(10).join("\n")}"
+    @logger.error "Fatal error in polling: #{e.class} - #{e.message}"
+    @logger.error "Backtrace: #{e.backtrace.first(10).join("\n")}"
     raise e
   end
 
@@ -81,20 +84,20 @@ class TelegramBotHandler
 
   def log_chat_info(chat, added_by)
     chat_info = format_chat_info(chat, added_by)
-    Application.logger.info "Bot added to chat | #{chat_info}"
+    @logger.info "Bot added to chat | #{chat_info}"
 
     # Детальная информация в JSON формате
     detailed_info = build_detailed_chat_info(chat, added_by)
-    Application.logger.debug "Detailed chat info: #{detailed_info.to_json}"
+    @logger.debug "Detailed chat info: #{detailed_info.to_json}"
   end
 
   def log_chat_creation(chat, creator)
     chat_info = format_chat_creation_info(chat, creator)
-    Application.logger.info "New chat created with bot | #{chat_info}"
+    @logger.info "New chat created with bot | #{chat_info}"
 
     # Детальная информация в JSON формате
     detailed_info = build_detailed_chat_info(chat, creator, "chat_created")
-    Application.logger.debug "Detailed chat creation info: #{detailed_info.to_json}"
+    @logger.debug "Detailed chat creation info: #{detailed_info.to_json}"
   end
 
   def format_chat_info(chat, added_by)
@@ -148,13 +151,9 @@ class TelegramBotHandler
   def send_chat_welcome_message(chat_id, bot)
     welcome_text = "👋 Здравствуйте! Я был добавлен в этот чат. Я помогу вам с вопросами по автосервису. Используйте /start для начала работы."
 
-    bot.api.send_message(
-      chat_id: chat_id,
-      text: welcome_text,
-      parse_mode: 'Markdown'
-    )
+    send_message_with_fallback(bot, chat_id, welcome_text)
   rescue StandardError => e
-    Application.logger.error "Failed to send welcome message to chat #{chat_id}: #{e.message}"
+    @logger.error "Failed to send welcome message to chat #{chat_id}: #{e.message}"
   end
 
   def process_update(update, bot)
@@ -172,7 +171,7 @@ class TelegramBotHandler
   def process_message(message, bot)
     # Validate message object
     unless message.respond_to?(:from) && message.from.respond_to?(:id)
-      Application.logger.error "Invalid message object: #{message.class}"
+      @logger.error "Invalid message object: #{message.class}"
       return
     end
 
@@ -196,53 +195,38 @@ class TelegramBotHandler
       text = message.respond_to?(:text) ? message.text : nil
       chat_id = message.chat.id
     rescue StandardError => e
-      Application.logger.error "Error extracting message data: #{e.class} - #{e.message}"
+      @logger.error "Error extracting message data: #{e.class} - #{e.message}"
       return
     end
 
     # Handle /start command
     if text && text.start_with?('/start')
-      Application.logger.info "User #{user_id} issued /start command"
+      @logger.info "User #{user_id} issued /start command"
       @conversation_manager.clear_history(user_id)
 
       # Use welcome message from config
-      bot.api.send_message(
-        chat_id: chat_id,
-        text: AppConfig.welcome_message,
-        parse_mode: 'Markdown'
-      )
+      send_message_with_fallback(bot, chat_id, AppConfig.welcome_message)
       return
     end
 
     # Handle /reset command
     if text && text.start_with?('/reset')
-      Application.logger.info "User #{user_id} issued /reset command"
+      @logger.info "User #{user_id} issued /reset command"
 
       if @conversation_manager.clear_history(user_id)
-        bot.api.send_message(
-          chat_id: chat_id,
-          text: '✅ Диалог сброшен. Можем начать разговор заново!',
-          parse_mode: 'Markdown'
-        )
-        Application.logger.info "User #{user_id} issued /reset command - success"
+        send_message_with_fallback(bot, chat_id, '✅ Диалог сброшен. Можем начать разговор заново!')
+        @logger.info "User #{user_id} issued /reset command - success"
       else
-        bot.api.send_message(
-          chat_id: chat_id,
-          text: '❌ Не удалось сбросить диалог. Попробуйте позже.',
-          parse_mode: 'Markdown'
-        )
-        Application.logger.error "User #{user_id} issued /reset command - failed"
+        send_message_with_fallback(bot, chat_id, '❌ Не удалось сбросить диалог. Попробуйте позже.')
+        @logger.error "User #{user_id} issued /reset command - failed"
       end
       return
     end
 
     # Check rate limit
     unless @rate_limiter.allow?(user_id)
-      Application.logger.warn "Rate limit exceeded for user #{user_id}"
-      bot.api.send_message(
-        chat_id: chat_id,
-        text: 'Вы отправляете слишком много сообщений. Пожалуйста, подождите немного.'
-      )
+      @logger.warn "Rate limit exceeded for user #{user_id}"
+      send_message_with_fallback(bot, chat_id, 'Вы отправляете слишком много сообщений. Пожалуйста, подождите немного.')
       return
     end
 
@@ -261,18 +245,11 @@ class TelegramBotHandler
       response = @ai_client.send_message_to_user(user_info, text)
 
       # Send response to user
-      bot.api.send_message(
-        chat_id: chat_id,
-        text: response,
-        parse_mode: 'Markdown'
-      )
+      send_message_with_fallback(bot, chat_id, response)
     rescue StandardError => e
-      Application.logger.error "Error processing message for user #{user_id}: #{e.message}"
-      Application.logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
-      bot.api.send_message(
-        chat_id: chat_id,
-        text: 'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте позже.'
-      )
+      @logger.error "Error processing message for user #{user_id}: #{e.message}"
+      @logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
+      send_message_with_fallback(bot, chat_id, 'Произошла ошибка при обработке вашего сообщения. Пожалуйста, попробуйте позже.')
     end
   end
 
@@ -282,24 +259,24 @@ class TelegramBotHandler
     old_chat_member = chat_member_update.old_chat_member
     new_chat_member = chat_member_update.new_chat_member
 
-    Application.logger.info "Chat member updated in chat #{chat.id} by user #{from_user.id}"
-    Application.logger.debug "Old status: #{old_chat_member.status}, New status: #{new_chat_member.status}"
+    @logger.info "Chat member updated in chat #{chat.id} by user #{from_user.id}"
+    @logger.debug "Old status: #{old_chat_member.status}, New status: #{new_chat_member.status}"
 
     # Handle bot being removed from chat
     if new_chat_member.user.is_bot && new_chat_member.status == 'kicked'
-      Application.logger.info "Bot was removed from chat #{chat.id} by user #{from_user.id}"
+      @logger.info "Bot was removed from chat #{chat.id} by user #{from_user.id}"
       # Clear conversation history for the chat
       @conversation_manager.clear_history(chat.id)
     end
 
     # Handle bot being added to chat
     if new_chat_member.user.is_bot && new_chat_member.status == 'member'
-      Application.logger.info "Bot was added to chat #{chat.id} by user #{from_user.id}"
+      @logger.info "Bot was added to chat #{chat.id} by user #{from_user.id}"
       log_chat_info(chat, from_user)
       send_chat_welcome_message(chat.id, bot)
     end
   rescue StandardError => e
-    Application.logger.error "Error handling chat member update: #{e.message}"
+    @logger.error "Error handling chat member update: #{e.message}"
   end
 
   def extract_user_info(user)
@@ -309,5 +286,39 @@ class TelegramBotHandler
       first_name: user.first_name,
       last_name: user.last_name
     }
+  end
+
+  def send_message_with_fallback(bot, chat_id, text, parse_mode = 'Markdown')
+    begin
+      # First try with the requested parse_mode
+      bot.api.send_message(
+        chat_id: chat_id,
+        text: text,
+        parse_mode: parse_mode
+      )
+      @logger.debug "Message sent successfully with parse_mode: #{parse_mode}"
+    rescue Telegram::Bot::Exceptions::ResponseError => e
+      if e.message.include?('can\'t parse entities') || e.message.include?('Bad Request: can\'t parse')
+        @logger.warn "Markdown parsing failed for chat #{chat_id}, falling back to plain text"
+        @logger.debug "Markdown error: #{e.message}"
+
+        # Fallback to plain text by escaping all markdown
+        plain_text = @markdown_sanitizer.send(:escape_all_markdown, text)
+
+        bot.api.send_message(
+          chat_id: chat_id,
+          text: plain_text
+        )
+        @logger.info "Message sent with plain text fallback for chat #{chat_id}"
+      else
+        # Re-raise non-markdown related errors
+        raise e
+      end
+    end
+  rescue StandardError => e
+    @logger.error "Failed to send message to chat #{chat_id}: #{e.message}"
+    @logger.error "Error class: #{e.class}"
+    @logger.error "Message preview: #{text[0..100].inspect}"
+    raise e
   end
 end

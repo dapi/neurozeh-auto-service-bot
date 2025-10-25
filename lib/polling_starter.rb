@@ -8,8 +8,8 @@ class PollingStarter
   end
 
   def start
-    Application.logger.info 'Polling mode started'
-    Application.logger.info 'Listening for updates from Telegram...'
+    Application.instance.logger.info 'Polling mode started'
+    Application.instance.logger.info 'Listening for updates from Telegram...'
     @telegram_bot_handler.handle_polling
   end
 end

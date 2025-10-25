@@ -2,15 +2,25 @@ require_relative 'boot'
 
 class Application
   def initialize
-    # Handle signals
+    puts "DEBUG: Starting Application initialize"
+
+    puts "DEBUG: About to call telegram_bot_handler"
+    telegram_bot_handler
+    puts "DEBUG: telegram_bot_handler completed"
+
+    # Setup signal handling after initialization
+    setup_signal_handlers
+    puts "DEBUG: Application initialize completed"
+  end
+
+  def setup_signal_handlers
     trap('INT') do
-      logger.info 'Received SIGINT, shutting down...'
+      puts 'Received SIGINT, shutting down...'
       exit(0)
     end
-
-    logger.info 'Auto Service Bot starting...'
-    telegram_bot_handler # Initialize
-    logger.info 'Bot initialized successfully'
+  rescue => e
+    # Fallback if trap setup fails
+    warn "Could not setup signal handlers: #{e.message}"
   end
 
   def config
@@ -32,12 +42,13 @@ class Application
     @telegram_bot_handler ||= TelegramBotHandler.new(
       ai_client,
       rate_limiter,
-      conversation_manager
+      conversation_manager,
+      logger
     )
   end
 
   def ai_client
-    @ai_client ||= LLMClient.new(conversation_manager)
+    @ai_client ||= LLMClient.new(conversation_manager, logger)
   end
 
   def conversation_manager
@@ -55,22 +66,16 @@ class Application
   private
 
   def build_logger
-    # Initialize logger
-    logger = Logger.new($stdout)
-    logger.level = Logger.const_get(log_level)
-    logger
+    # Initialize logger - use ::Logger to avoid namespace conflicts
+    instance_logger = ::Logger.new($stdout)
+    instance_logger.level = ::Logger.const_get(log_level)
+    instance_logger
   end
 
   class << self
-    # Make it possible to access a singleton config instance
-    # via class methods (i.e., without explicitly calling `instance`)
-    delegate_missing_to :instance
-
     def initialize!
       instance
     end
-
-    private
 
     # Returns a singleton config instance
     def instance

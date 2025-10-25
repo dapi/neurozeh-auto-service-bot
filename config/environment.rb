@@ -13,3 +13,5 @@ DatabaseConfig.load_models
 
 
 Application.initialize!
+Application.instance.logger.info 'Auto Service Bot starting...'
+Application.instance.logger.info 'Bot initialized successfully'

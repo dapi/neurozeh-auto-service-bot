@@ -6,7 +6,7 @@ class CostCalculator
   def initialize(price_list_path)
     @price_list_path = price_list_path
     @price_list = load_price_list
-    Application.logger.info "CostCalculator initialized with #{@price_list.size} services"
+    Application.instance.logger.info "CostCalculator initialized with #{@price_list.size} services"
   end
 
   # Основной метод расчета стоимости
@@ -14,7 +14,7 @@ class CostCalculator
     return nil unless services && services.any?
     return nil unless car_class
 
-    Application.logger.debug "Calculating cost for #{services.size} services, car class #{car_class}"
+    Application.instance.logger.debug "Calculating cost for #{services.size} services, car class #{car_class}"
 
     total = 0
     calculated_services = []
@@ -30,7 +30,7 @@ class CostCalculator
         }
         total += price_info[:price]
       else
-        Application.logger.warn "Service not found in price list: #{service}"
+        Application.instance.logger.warn "Service not found in price list: #{service}"
         # Добавляем услугу с пометкой "по запросу"
         calculated_services << {
           name: "#{service} (расчет по запросу)",
@@ -49,7 +49,7 @@ class CostCalculator
       car_class: car_class
     }
 
-    Application.logger.debug "Cost calculation result: #{result.inspect}"
+    Application.instance.logger.debug "Cost calculation result: #{result.inspect}"
     result
   end
 
@@ -146,9 +146,9 @@ class CostCalculator
         end
       end
 
-      Application.logger.info "Loaded price list: #{price_list[1].size} services for class 1, #{price_list[2].size} for class 2, #{price_list[3].size} for class 3"
+      Application.instance.logger.info "Loaded price list: #{price_list[1].size} services for class 1, #{price_list[2].size} for class 2, #{price_list[3].size} for class 3"
     rescue StandardError => e
-      Application.logger.error "Error loading price list: #{e.message}"
+      Application.instance.logger.error "Error loading price list: #{e.message}"
     end
 
     price_list

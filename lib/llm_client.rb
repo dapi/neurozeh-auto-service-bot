@@ -4,35 +4,38 @@ require 'ruby_llm'
 require 'logger'
 require_relative 'request_detector'
 require_relative 'dialog_analyzer'
+require_relative 'telegram_markdown_sanitizer'
 
 class LLMClient
   MAX_RETRIES = 1
 
-  def initialize(conversation_manager = nil)
+  def initialize(conversation_manager = nil, logger = nil)
     @conversation_manager = conversation_manager || ConversationManager.new
+    @logger = logger || @logger
+    @markdown_sanitizer = TelegramMarkdownSanitizer.new(logger: @logger)
   end
 
   # Новый метод - отправка сообщения с использованием персистентного чата
   def send_message_to_user(user_info, message_content, additional_context = nil)
     # Trace логирование для отслеживания источника запроса
     caller_info = caller_locations(1, 1).first
-    Application.logger.info "🔍 LLM CLIENT TRACE: Called from #{caller_info.path}:#{caller_info.lineno}"
-    Application.logger.info "Sending message to user #{user_info[:id]}"
-    Application.logger.debug "🔍 OUTGOING MESSAGE TRACE:"
-    Application.logger.debug "  User: #{user_info[:id]} (#{user_info[:first_name]} #{user_info[:last_name]})"
-    Application.logger.debug "  Message length: #{message_content.length} chars"
-    Application.logger.debug "  Message preview: #{message_content[0..100].inspect}#{'...' if message_content.length > 100}"
-    Application.logger.debug "  Additional context: #{additional_context ? 'YES' : 'NO'}"
+    @logger.info "🔍 LLM CLIENT TRACE: Called from #{caller_info.path}:#{caller_info.lineno}"
+    @logger.info "Sending message to user #{user_info[:id]}"
+    @logger.debug "🔍 OUTGOING MESSAGE TRACE:"
+    @logger.debug "  User: #{user_info[:id]} (#{user_info[:first_name]} #{user_info[:last_name]})"
+    @logger.debug "  Message length: #{message_content.length} chars"
+    @logger.debug "  Message preview: #{message_content[0..100].inspect}#{'...' if message_content.length > 100}"
+    @logger.debug "  Additional context: #{additional_context ? 'YES' : 'NO'}"
 
     # Получаем или создаем чат для пользователя
     db_chat = @conversation_manager.get_or_create_chat(user_info)
 
     # Используем персистентный чат из базы данных
-    Application.logger.debug "Using persistent chat ##{db_chat.id}"
+    @logger.debug "Using persistent chat ##{db_chat.id}"
 
     retries = 0
     begin
-      Application.logger.info "LLMClient using model: #{AppConfig.llm_model}, provider: #{AppConfig.llm_provider}"
+      @logger.info "LLMClient using model: #{AppConfig.llm_model}, provider: #{AppConfig.llm_provider}"
 
       # Устанавливаем модель динамически
       chat = db_chat.with_model(AppConfig.llm_model, provider: AppConfig.llm_provider.to_sym)
@@ -58,28 +61,39 @@ class LLMClient
       # Отправляем сообщение - acts_as_chat автоматически сохранит сообщения
       response = chat.ask(message_content)
 
-      Application.logger.info "Response received for user #{user_info[:id]}, tokens: #{response.input_tokens + response.output_tokens}"
-      response.content
+      @logger.info "Response received for user #{user_info[:id]}, tokens: #{response.input_tokens + response.output_tokens}"
+
+      # Санитизируем markdown для Telegram API
+      sanitized_content = @markdown_sanitizer.sanitize(response.content)
+
+      # Логируем если контент был изменен
+      if response.content != sanitized_content
+        @logger.debug "Markdown sanitization applied: #{response.content.length} -> #{sanitized_content.length} chars"
+        @logger.debug "Original: #{response.content[0..100].inspect}#{'...' if response.content.length > 100}"
+        @logger.debug "Sanitized: #{sanitized_content[0..100].inspect}#{'...' if sanitized_content.length > 100}"
+      end
+
+      sanitized_content
 
     rescue RubyLLM::ConfigurationError => e
-      Application.logger.error "RubyLLM configuration error: #{e.message}"
+      @logger.error "RubyLLM configuration error: #{e.message}"
       raise e
     rescue RubyLLM::ModelNotFoundError => e
-      Application.logger.error "Model not found error: #{e.message}"
+      @logger.error "Model not found error: #{e.message}"
       raise e
     rescue RubyLLM::Error => e
-      Application.logger.error "RubyLLM API error: #{e.message}"
+      @logger.error "RubyLLM API error: #{e.message}"
       raise e
     rescue StandardError => e
       retries += 1
       if retries <= MAX_RETRIES
-        Application.logger.warn "LLM client retry #{retries}/#{MAX_RETRIES}: #{e.message}"
-        Application.logger.warn "Backtrace:\n#{e.backtrace.join("\n")}" if retries == MAX_RETRIES
+        @logger.warn "LLM client retry #{retries}/#{MAX_RETRIES}: #{e.message}"
+        @logger.warn "Backtrace:\n#{e.backtrace.join("\n")}" if retries == MAX_RETRIES
         sleep(1)
         retry
       else
-        Application.logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
-        Application.logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
+        @logger.error "Failed to send message to RubyLLM after #{MAX_RETRIES} retries: #{e.message}"
+        @logger.error "Backtrace:\n#{e.backtrace.join("\n")}"
         raise e
       end
     end
@@ -107,7 +121,7 @@ class LLMClient
   end
 
   def create_enriched_request_detector(chat, user_info)
-    Application.logger.debug "Creating enriched RequestDetector for user #{user_info[:id]}"
+    @logger.debug "Creating enriched RequestDetector for user #{user_info[:id]}"
 
     # Извлекаем информацию из диалога через conversation_manager
     messages_array = @conversation_manager.get_history(user_info[:id])
@@ -120,15 +134,15 @@ class LLMClient
 
     # Извлекаем последнюю названную общую стоимость
     total_cost_to_user = dialog_analyzer.extract_last_total_cost(messages_array)
-    Application.logger.debug "Extracted total cost to user: #{total_cost_to_user}" if total_cost_to_user
+    @logger.debug "Extracted total cost to user: #{total_cost_to_user}" if total_cost_to_user
 
     # Создаем краткую выжимку из переписки
     conversation_summary = dialog_analyzer.extract_conversation_summary(messages_array)
-    Application.logger.debug "Generated conversation summary with #{conversation_summary.length} characters"
+    @logger.debug "Generated conversation summary with #{conversation_summary.length} characters"
 
     # Не рассчитываем стоимость - она уже есть в ответах бота пользователю
     cost_calculation = nil
-    Application.logger.debug "Skipping cost calculation - using extracted total cost: #{total_cost_to_user}"
+    @logger.debug "Skipping cost calculation - using extracted total cost: #{total_cost_to_user}"
 
     # Создаем RequestDetector
     detector = RequestDetector.new
@@ -145,8 +159,8 @@ class LLMClient
 
     detector
   rescue StandardError => e
-    Application.logger.error "Error creating enriched RequestDetector: #{e.message}"
-    Application.logger.error "Backtrace: #{e.backtrace.first(5).join("\n")}"
+    @logger.error "Error creating enriched RequestDetector: #{e.message}"
+    @logger.error "Backtrace: #{e.backtrace.first(5).join("\n")}"
     # Возвращаем базовый RequestDetector в случае ошибки
     RequestDetector.new
   end

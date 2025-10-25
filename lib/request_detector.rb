@@ -32,7 +32,7 @@ class RequestDetector < RubyLLM::Tool
       total_cost_to_user: total_cost_to_user,
       conversation_summary: conversation_summary
     }
-    Application.logger.debug "RequestDetector enriched with data: #{@enriched_data.keys}"
+    Application.instance.logger.debug "RequestDetector enriched with data: #{@enriched_data.keys}"
   end
 
   # Метод для получения обогащенных данных
@@ -45,18 +45,18 @@ class RequestDetector < RubyLLM::Tool
               total_cost_to_user: nil, conversation_summary: nil)
 
     begin
-      Application.logger.info "Request detected: #{message_text[0..50]}..."
-      Application.logger.debug "Request data - name: #{name}"
+      Application.instance.logger.info "Request detected: #{message_text[0..50]}..."
+      Application.instance.logger.debug "Request data - name: #{name}"
 
       # Валидация конфигурации
       admin_chat_id = AppConfig.admin_chat_id
       unless admin_chat_id
-        Application.logger.error "Admin chat ID not configured"
+        Application.instance.logger.error "Admin chat ID not configured"
         return { error: "Сервис заявок не настроен" }
       end
 
       # LLM уже определил(а), что это заявка на услугу, поэтому сразу обрабатываем её
-      Application.logger.info "Processing service request - confirmed by LLM"
+      Application.instance.logger.info "Processing service request - confirmed by LLM"
 
       # Обогащенные данные имеют приоритет над переданными параметрами
       final_car_info = @enriched_data[:car_info] || car_info
@@ -66,7 +66,7 @@ class RequestDetector < RubyLLM::Tool
 
       # Валидация основных данных
       unless message_text && !message_text.strip.empty?
-        Application.logger.error "Empty message_text"
+        Application.instance.logger.error "Empty message_text"
         return { error: "Пустой текст сообщения" }
       end
 
@@ -85,14 +85,14 @@ class RequestDetector < RubyLLM::Tool
       if result[:success]
         return "Заявка отправлена администратору"
       else
-        Application.logger.error "Admin notification failed: #{result[:error]}"
+        Application.instance.logger.error "Admin notification failed: #{result[:error]}"
         return { error: result[:error] }
       end
 
     rescue StandardError => e
-      Application.logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
-      Application.logger.error "Full backtrace:"
-      e.backtrace&.each { |line| Application.logger.error "  #{line}" }
+      Application.instance.logger.error "❌ REQUEST ERROR: #{e.class}: #{e.message}"
+      Application.instance.logger.error "Full backtrace:"
+      e.backtrace&.each { |line| Application.instance.logger.error "  #{line}" }
       { error: "Ошибка при обработке заявки: #{e.message}" }
     end
   end
@@ -100,57 +100,37 @@ class RequestDetector < RubyLLM::Tool
   private
 
   def send_to_admin_chat(request_info, username, name, admin_chat_id)
-    begin
-      # Валидация входных данных
-      unless admin_chat_id
-        Application.logger.error "Admin chat ID is nil"
-        return { error: "Admin chat ID не указан" }
-      end
+    # Создаем уведомление для админского чата с защитой от ошибок
+    notification = format_admin_notification_safe(request_info, username, name)
 
-      # Создаем уведомление для админского чата с защитой от ошибок
-      notification = format_admin_notification_safe(request_info, username, name)
+    # Очищаем текст для безопасного Markdown
+    notification = sanitize_markdown(notification)
 
-      # Очищаем текст для безопасного Markdown
-      notification = sanitize_markdown(notification)
+    # Используем Telegram bot API для отправки с таймаутом
+    bot = Telegram::Bot::Client.new(bot_token)
 
-      unless notification && !notification.strip.empty?
-        Application.logger.error "Empty notification generated"
-        return { error: "Ошибка форматирования уведомления" }
-      end
+    bot.api.send_message(
+      chat_id: admin_chat_id,
+      text: notification.presence || 'Ошибка! Нет уведомления',
+      parse_mode: 'Markdown'
+    )
 
-      # Валидация токена бота
-      bot_token = AppConfig.telegram_bot_token
-      unless bot_token && !bot_token.strip.empty?
-        Application.logger.error "Telegram bot token is empty or nil"
-        return { error: "Токен бота не настроен" }
-      end
-
-      # Используем Telegram bot API для отправки с таймаутом
-      bot = Telegram::Bot::Client.new(bot_token)
-
-      bot.api.send_message(
-        chat_id: admin_chat_id,
-        text: notification,
-        parse_mode: 'Markdown'
-      )
-
-      Application.logger.info "Request notification sent to admin chat #{admin_chat_id}"
-      { success: true }
-    rescue Telegram::Bot::Exceptions::ResponseError => e
-      log_telegram_api_error(e, request_info, username, name)
-      { error: "Ошибка API Telegram: #{e.message}" }
-    rescue Telegram::Bot::Exceptions::BaseError => e
-      Application.logger.error "Telegram bot error: #{e.class}: #{e.message}"
-      { error: "Ошибка бота Telegram: #{e.message}" }
-    rescue Net::TimeoutError, Net::OpenTimeout => e
-      Application.logger.error "Network timeout sending admin notification: #{e.message}"
-      { error: "Таймаут сети при отправке уведомления" }
-    rescue StandardError => e
-      Application.logger.error "❌ REQUEST ERROR: Unexpected error sending admin notification: #{e.class}: #{e.message}"
-      Application.logger.error "Full backtrace:"
-      e.backtrace&.each { |line| Application.logger.error "  #{line}" }
-      { error: "Непредвиденная ошибка: #{e.message}" }
-    end
+    Application.instance.logger.info "Request notification sent to admin chat #{admin_chat_id}"
+    { success: true }
+  rescue Telegram::Bot::Exceptions::ResponseError => e
+    log_telegram_api_error(e, request_info, username, name)
+    { error: "Ошибка API Telegram: #{e.message}" }
+  rescue Telegram::Bot::Exceptions::Base => e
+    Application.instance.logger.error "Telegram bot error: #{e.class}: #{e.message}"
+    { error: "Ошибка бота Telegram: #{e.message}" }
+  rescue Net::TimeoutError, Net::OpenTimeout => e
+    Application.instance.logger.error "Network timeout sending admin notification: #{e.message}"
+    { error: "Таймаут сети при отправке уведомления" }
+  rescue StandardError => e
+    Application.instance.logger.error "❌ REQUEST ERROR: Unexpected error sending admin notification: #{e.class}: #{e.message}"
+    Application.instance.logger.error "Full backtrace:"
+    e.backtrace&.each { |line| Application.instance.logger.error "  #{line}" }
+    { error: "Непредвиденная ошибка: #{e.message}" }
   end
 
   def format_admin_notification(request_info, username, name)
@@ -185,7 +165,7 @@ class RequestDetector < RubyLLM::Tool
 
       notification
     rescue StandardError => e
-      Application.logger.error "Error formatting admin notification: #{e.message}"
+      Application.instance.logger.error "Error formatting admin notification: #{e.message}"
       # Возвращаем базовое уведомление в случае ошибки форматирования
       basic_name = name.to_s.strip.empty? ? "Клиент" : name.to_s.strip
       "🔔 **НОВАЯ ЗАЯВКА**\n\n👤 **Клиент:** #{basic_name}\n\n💬 **Сообщение:**\n```\n#{request_info[:original_text].to_s.strip[0..200]}\n```\n\n⚠️ *Произошла ошибка форматирования уведомления*"
@@ -372,7 +352,7 @@ class RequestDetector < RubyLLM::Tool
 
       notification
     rescue StandardError => e
-      Application.logger.error "Error in format_basic_info_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_basic_info_safe: #{e.message}"
       "🔔 **НОВАЯ ЗАЯВКА**\n\n👤 **Клиент:** [ошибка форматирования]\n\n💬 **Сообщение:** [не удалось отформатировать]\n\n"
     end
   end
@@ -411,7 +391,7 @@ class RequestDetector < RubyLLM::Tool
       info += "\n" if has_data
       info
     rescue StandardError => e
-      Application.logger.error "Error in format_car_info_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_car_info_safe: #{e.message}"
       "\n🚗 **Информация об автомобиле:** [ошибка форматирования]\n\n"
     end
   end
@@ -429,7 +409,7 @@ class RequestDetector < RubyLLM::Tool
       info += "\n"
       info
     rescue StandardError => e
-      Application.logger.error "Error in format_required_services_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_required_services_safe: #{e.message}"
       "\n🔧 **Необходимые работы:** [ошибка форматирования]\n\n"
     end
   end
@@ -444,7 +424,7 @@ class RequestDetector < RubyLLM::Tool
       info += "• *Окончательная стоимость определяется после диагностики*\n\n"
       info
     rescue StandardError => e
-      Application.logger.error "Error in format_total_cost_to_user_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_total_cost_to_user_safe: #{e.message}"
       "\n💰 **Общая стоимость названная клиенту:** [ошибка форматирования]\n\n"
     end
   end
@@ -458,7 +438,7 @@ class RequestDetector < RubyLLM::Tool
       info += "#{summary}\n\n"
       info
     rescue StandardError => e
-      Application.logger.error "Error in format_conversation_summary_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_conversation_summary_safe: #{e.message}"
       "\n📝 **Выжимка из переписки:** [ошибка форматирования]\n\n"
     end
   end
@@ -471,7 +451,7 @@ class RequestDetector < RubyLLM::Tool
       info += "#{context}\n\n"
       info
     rescue StandardError => e
-      Application.logger.error "Error in format_dialog_context_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_dialog_context_safe: #{e.message}"
       "\n💬 **Контекст диалога:** [ошибка форматирования]\n\n"
     end
   end
@@ -480,7 +460,7 @@ class RequestDetector < RubyLLM::Tool
     begin
       "" # "\n🔗 **Действия:**\n/answer_#{user_id} - Ответить клиенту\n/close_#{user_id} - Закрыть заявку\n"
     rescue StandardError => e
-      Application.logger.error "Error in format_action_buttons_safe: #{e.message}"
+      Application.instance.logger.error "Error in format_action_buttons_safe: #{e.message}"
       ""
     end
   end
@@ -490,7 +470,7 @@ class RequestDetector < RubyLLM::Tool
 
     begin
       # Используем CommonMarker для валидации и исправления Markdown
-      Application.logger.debug "🔍 SANITIZING MARKDOWN: Input length #{text.length} chars"
+      Application.instance.logger.debug "🔍 SANITIZING MARKDOWN: Input length #{text.length} chars"
 
       # Парсим и рендерим через CommonMarker для исправления структуры
       doc = Commonmarker.parse(text)
@@ -499,11 +479,11 @@ class RequestDetector < RubyLLM::Tool
       # Дополнительная очистка для Telegram API
       sanitized = sanitize_for_telegram(sanitized)
 
-      Application.logger.debug "🔍 SANITIZED MARKDOWN: Output length #{sanitized.length} chars"
+      Application.instance.logger.debug "🔍 SANITIZED MARKDOWN: Output length #{sanitized.length} chars"
       sanitized
 
     rescue StandardError => e
-      Application.logger.error "Commonmarker sanitization failed: #{e.message}, using fallback"
+      Application.instance.logger.error "Commonmarker sanitization failed: #{e.message}, using fallback"
       # Fallback к базовой очистке
       sanitize_for_telegram(text)
     end
@@ -524,39 +504,39 @@ class RequestDetector < RubyLLM::Tool
 
     sanitized
   rescue StandardError => e
-    Application.logger.error "Error in telegram sanitization: #{e.message}"
+    Application.instance.logger.error "Error in telegram sanitization: #{e.message}"
     text
   end
 
   def log_telegram_api_error(error, request_info, username, name)
     # Детальное trace логирование при ошибке Telegram API
-    Application.logger.error "🔍 TELEGRAM API ERROR TRACE:"
-    Application.logger.error "  Error: #{error.message}"
-    Application.logger.error "  Error code: #{error.instance_variable_get(:@error_code) if error.instance_variable_defined?(:@error_code)}"
-    Application.logger.error "  Description: #{error.instance_variable_get(:@description) if error.instance_variable_defined?(:@description)}"
+    Application.instance.logger.error "🔍 TELEGRAM API ERROR TRACE:"
+    Application.instance.logger.error "  Error: #{error.message}"
+    Application.instance.logger.error "  Error code: #{error.instance_variable_get(:@error_code) if error.instance_variable_defined?(:@error_code)}"
+    Application.instance.logger.error "  Description: #{error.instance_variable_get(:@description) if error.instance_variable_defined?(:@description)}"
 
     # Логируем вызова из стека
-    Application.logger.error "  Call stack:"
+    Application.instance.logger.error "  Call stack:"
     caller_locations(0, 5).each do |loc|
-      Application.logger.error "    #{loc.path}:#{loc.lineno} in #{loc.label}"
+      Application.instance.logger.error "    #{loc.path}:#{loc.lineno} in #{loc.label}"
     end
 
     # Если ошибка парсинга Markdown, логируем текст
     if error.message.include?("can't parse entities")
       notification = format_admin_notification_safe(request_info, username, name)
-      Application.logger.error "  Failed text length: #{notification&.bytesize} bytes"
-      Application.logger.error "  Failed text preview (first 500 chars):"
-      Application.logger.error "    #{notification&.truncate(500).inspect}"
+      Application.instance.logger.error "  Failed text length: #{notification&.bytesize} bytes"
+      Application.instance.logger.error "  Failed text preview (first 500 chars):"
+      Application.instance.logger.error "    #{notification&.truncate(500).inspect}"
 
       # Ищем проблемные символы в районе указанного offset
       if match = error.message.match(/byte offset (\d+)/)
         offset = match[1].to_i
-        Application.logger.error "  Problem area around byte offset #{offset}:"
+        Application.instance.logger.error "  Problem area around byte offset #{offset}:"
         notification&.chars.each_with_index do |char, i|
           if i >= [offset - 50, 0].max && i <= offset + 50
             byte_pos = notification.byteslice(0, i).bytesize
             indicator = (byte_pos == offset) ? "👉" : "  "
-            Application.logger.error "    #{indicator} [#{i}] #{char.inspect} (byte pos: #{byte_pos})"
+            Application.instance.logger.error "    #{indicator} [#{i}] #{char.inspect} (byte pos: #{byte_pos})"
           end
         end
       end

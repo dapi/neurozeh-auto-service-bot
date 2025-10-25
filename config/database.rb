@@ -9,7 +9,7 @@ module DatabaseConfig
     db_config = YAML.load_file(File.join(File.dirname(__FILE__), '..', 'db', 'config.yml'))[environment]
 
     ActiveRecord::Base.establish_connection(db_config)
-    ActiveRecord::Base.logger = Logger.new($stdout) if ENV['DEBUG']
+    ActiveRecord::Base.logger = ::Logger.new($stdout) if ENV['DEBUG']
   end
 
   def self.load_models
