@@ -53,12 +53,19 @@ Telegram бот для записи на услуги автосервиса.
    ADMIN_CHAT_ID=123456789  # ID административного чата для уведомлений о заявках
    ```
 
-4. **Запустить бота:**
+4. **Настроить базу данных:**
+   ```bash
+   docker-compose run --rm auto-service-bot rake db:create
+   docker-compose run --rm auto-service-bot rake db:migrate
+   docker-compose run --rm auto-service-bot rake ruby_llm:load_models
+   ```
+
+5. **Запустить бота:**
    ```bash
    docker-compose up -d
    ```
 
-5. **Проверить статус:**
+6. **Проверить статус:**
    ```bash
    docker-compose logs -f auto-service-bot
    ```
@@ -303,6 +310,11 @@ dip bash
 # - Установить зависимости
 bundle install
 
+# - Настроить базу данных
+rake db:create
+rake db:migrate
+rake ruby_llm:load_models
+
 # - Запустить тесты
 rake test
 
@@ -419,19 +431,34 @@ nano .env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 ```
 
-### 3. Запустить бота
+### 3. Настройка базы данных
+
+Создание базы данных и выполнение миграций:
+
+```bash
+# Создание базы данных
+rake db:create
+
+# Выполнение миграций
+rake db:migrate
+
+# Загрузка LLM моделей
+rake ruby_llm:load_models
+```
+
+### 4. Запустить бота
 
 ```bash
 ruby bot.rb
 ```
 
-### 4. Запуск тестов
+### 5. Запуск тестов
 
 ```bash
 rake test
 ```
 
-### 5. Проверка стиля кода
+### 6. Проверка стиля кода
 
 ```bash
 bundle exec rubocop

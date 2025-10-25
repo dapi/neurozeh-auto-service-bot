@@ -18,4 +18,8 @@ RubyLLM.configure do |config|
   config.mistral_api_key = ENV.fetch('MISTRAL_API_KEY', nil)
   config.vertexai_location = ENV.fetch('GOOGLE_CLOUD_LOCATION', nil)
   config.vertexai_project_id = ENV.fetch('GOOGLE_CLOUD_PROJECT', nil)
+
+  config.default_model = AppConfig.llm_model # 'claude-sonnet-4'           # For RubyLLM.chat
+  config.default_embedding_model = AppConfig.llm_model # 'text-embedding-3-large'  # For RubyLLM.embed
+  config.default_image_model = AppConfig.llm_model # 'dall-e-3'              # For RubyLLM.paint
 end

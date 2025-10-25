@@ -30,10 +30,6 @@ class Chat < ApplicationRecord
     user_id = user_info[:id]
     chat_id = user_info[:chat_id] || user_id
 
-    find_by(telegram_user_id: user_id, telegram_chat_id: chat_id) ||
-      create!(
-        telegram_user_id: user_id,
-        telegram_chat_id: chat_id
-      )
+    find_or_create_by!(telegram_user_id: user_id, telegram_chat_id: chat_id)
   end
 end
